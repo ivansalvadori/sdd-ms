@@ -1,0 +1,30 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix api:  <http://api.com#> .
+@prefix dbo:  <http://dbpedia.org/ontology/> .
+
+[ a owl:Ontology ;
+owl:imports <http://dbpedia.org/ontology/birthPlace> ;
+owl:imports <http://dbpedia.org/ontology/deathCause> ] .
+
+api:idade a owl:DatatypeProperty .
+api:Person a owl:Class .
+
+
+api:BrasileiroAssassinado
+  a owl:Class ;
+  owl:equivalentClass
+  [ a owl:Class ;
+    owl:intersectionOf 
+      ( api:Person 
+        [ a owl:Restriction ;
+	      owl:onProperty dbo:birthPlace ;
+	      owl:hasValue <http://dbpedia.org/page/Brazil>
+	    ]
+	    [ a owl:Restriction ;
+	      owl:onProperty dbo:deathCause ;
+	      owl:hasValue <http://dbpedia.org/page/Murder>
+	    ] 
+	  )	   
+  ] .

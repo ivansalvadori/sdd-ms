@@ -1,0 +1,11 @@
+@prefix api:  <http://api.com#> .
+
+api:Joao a api:Person .
+api:Joao api:localNascimento <http://dbpedia.org/page/Brazil> .
+api:Joao api:causaMorte <http://dbpedia.org/page/Murder> .
+api:Joao api:idade "50" .
+
+ 
+api:Maria a api:Person .
+api:Maria api:localNascimento <http://dbpedia.org/page/Argentina> .
+api:Maria api:idade "30" .
