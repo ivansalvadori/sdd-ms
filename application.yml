@@ -1,0 +1,4 @@
+server.port: 8081
+config:
+  filePath: "dataset"
+  ontologyFile: "ontology.owl"
