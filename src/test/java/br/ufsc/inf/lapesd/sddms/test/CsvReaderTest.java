@@ -47,7 +47,7 @@ public class CsvReaderTest {
         DataBase dataBase = new DataBase(directory);
         String ontologyFilepath = "C:\\Development\\eclipse-workspace\\sdd-ms\\src\\test\\resources\\csvReaderTest\\ontology.owl";
         dataBase.setOntologyFile(ontologyFilepath);
-        List<String> listAllResources = dataBase.listAllResources("http://www.public-security-ontology/LocalOcorrencia");
+        List<String> listAllResources = dataBase.listAllResources("http://www.public-security-ontology/BoletimOcorrencia");
         for (String string : listAllResources) {
             System.out.println(string);
         }
@@ -60,7 +60,7 @@ public class CsvReaderTest {
         DataBase dataBase = new DataBase(directory);
         String ontologyFilepath = "C:\\Development\\eclipse-workspace\\sdd-ms\\src\\test\\resources\\csvReaderTest\\ontology.owl";
         dataBase.setOntologyFile(ontologyFilepath);
-        Model load = dataBase.load("sddms-resource:445EE0C1C83E670F2F2AB0DFEF4AEDF26754C268");
+        Model load = dataBase.load("sddms-resource:559B4006499E34A5749091D7C280F16DE32D4092");
         load.write(System.out, Lang.JSONLD.getName());
     }
 

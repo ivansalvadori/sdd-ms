@@ -100,7 +100,7 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 
@@ -134,14 +134,14 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
 
     private Individual createResourceModel(JsonObject mappingContext, JsonObject mappingConfig, CSVRecord record, OntModel ontologyModel) {
         OntResource resourceClass = ontologyModel.createOntResource(mappingContext.get("@type").getAsString());
-        String uri = createResourceUri(mappingConfig, record, resourceClass.getURI());
+        String uri = createResourceUri(mappingContext, record, resourceClass.getURI());
         OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         Individual individual = model.createIndividual(uri, resourceClass);
 
         if (!mappingContext.isJsonNull()) {
             Set<Entry<String, JsonElement>> entrySet = mappingContext.getAsJsonObject().entrySet();
             for (Entry<String, JsonElement> entry : entrySet) {
-                if (entry.getKey().equals("@type")) {
+                if (entry.getKey().equals("@type") || entry.getKey().equals("@uriProperty")) {
                     continue;
                 }
                 if (entry.getValue().isJsonPrimitive()) {
@@ -180,18 +180,18 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
         return ontologyModel;
     }
 
-    private String createResourceUri(JsonObject mappingConfig, CSVRecord record, String resourceTypeUri) {
+    private String createResourceUri(JsonObject mappingContext, CSVRecord record, String resourceTypeUri) {
         String resourceUri = resourceTypeUri;
 
-        if (mappingConfig.get("http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#propertyKey").isJsonPrimitive()) {
-            String propertyKey = mappingConfig.get("http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#propertyKey").getAsString();
+        if (mappingContext.get("@uriProperty").isJsonPrimitive()) {
+            String propertyKey = mappingContext.get("@uriProperty").getAsString();
             if (propertyKey.equalsIgnoreCase("RandomUri")) {
                 resourceUri = UUID.randomUUID().toString();
             } else {
                 resourceUri = record.get(propertyKey);
             }
-        } else if (mappingConfig.get("http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#propertyKey").isJsonArray()) {
-            JsonArray asJsonArray = mappingConfig.get("http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#propertyKey").getAsJsonArray();
+        } else if (mappingContext.get("@uriProperty").isJsonArray()) {
+            JsonArray asJsonArray = mappingContext.get("@uriProperty").getAsJsonArray();
             Iterator<JsonElement> iterator = asJsonArray.iterator();
             while (iterator.hasNext()) {
                 JsonElement next = iterator.next();
