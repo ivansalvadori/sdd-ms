@@ -1,20 +1,20 @@
 {
   "@context": {
-    "@id": "http://www.public-security-ontology/BoletimOcorrencia",
+    "@type": "http://www.public-security-ontology/BoletimOcorrencia",
     "NUMERO_BOLETIM": "http://www.public-security-ontology/numeroOcorrencia",
     "DATAOCORRENCIA": "http://www.public-security-ontology/dataOcorrencia",
     "PERIDOOCORRENCIA": "http://www.public-security-ontology/periodoOcorrencia",
     "DELEGACIA_NOME": "http://www.public-security-ontology/nomeDelegacia",
-    "localDaOcorrencia": {
-      "@id": "http://www.public-security-ontology/LocalOcorrencia",
+    "http://www.public-security-ontology/localDaOcorrencia": {
+      "@type": "http://www.public-security-ontology/LocalOcorrencia",
       "LOGRADOURO": "http://www.public-security-ontology/logradouro",
       "NUMERO": "http://www.public-security-ontology/numero",
       "BAIRRO": "http://www.public-security-ontology/bairro",
       "CIDADE": "http://www.public-security-ontology/cidade",
       "UF": "http://www.public-security-ontology/estado",
       "DESCRICAOLOCAL": "http://www.public-security-ontology/tipoLocal",
-      "geo": {
-        "@id": "http://www.public-security-ontology/GeoLocalizacao",
+      "http://www.public-security-ontology/geoLocalizacaoDaOcorrencia": {
+        "@type": "http://www.public-security-ontology/GeoLocalizacao",
         "LATITUDE": "http://www.public-security-ontology/latitude",
         "LONGITUDE": "http://www.public-security-ontology/longitude"
       }
@@ -22,7 +22,7 @@
   },
   "http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#Configuration": {
      "http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#csvSeparator": "TAB",
-     "http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#propertyKey": "http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#RandomUri"
+     "http://www.ivansalvadori.com.br/sdd-ms-ontology.owl#propertyKey": "RandomUri"
    }
 }
 

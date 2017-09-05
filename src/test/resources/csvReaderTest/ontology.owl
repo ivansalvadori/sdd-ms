@@ -1,0 +1,15 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix api:  <http://www.public-security-ontology/> .
+
+api:numeroOcorrencia a owl:DatatypeProperty .
+
+api:possuiBoletimOcorrencia a owl:ObjectProperty .
+
+api:localDaOcorrencia a owl:ObjectProperty .
+api:localDaOcorrencia owl:inverseOf api:possuiBoletimOcorrencia .
+
+api:BoletimOcorrencia a owl:Class .
+api:LocalDaOcorrencia a owl:Class .
+api:GeoLocalizacao a owl:Class .

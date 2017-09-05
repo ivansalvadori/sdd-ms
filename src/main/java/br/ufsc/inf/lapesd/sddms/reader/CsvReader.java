@@ -5,8 +5,11 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
@@ -26,6 +29,7 @@ import org.apache.jena.ontology.Individual;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.ontology.OntProperty;
 import org.apache.jena.ontology.OntResource;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +48,14 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
     @Autowired
     private DataBase dataBase;
 
+    private String ontologyFile;
+
     public void setDataBase(DataBase dataBase) {
         this.dataBase = dataBase;
+    }
+
+    public void setOntologyFile(String ontologyFile) {
+        this.ontologyFile = ontologyFile;
     }
 
     private int recordsProcessed = 0;
@@ -58,6 +68,7 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
     @Override
     public void readAndStore(String pathToFiles) {
         recordsProcessed = 0;
+        OntModel ontologyModel = createOntologyModel();
 
         try {
 
@@ -83,7 +94,7 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
                 }
 
                 for (CSVRecord record : records) {
-                    Individual resource = createResourceModel(mappingContext, mappingConfing, record);
+                    Individual resource = createResourceModel(mappingContext, mappingConfing, record, ontologyModel);
                     dataBase.store(resource.getModel());
                     System.out.println(++recordsProcessed + " records processed");
                 }
@@ -121,32 +132,52 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
         throw new RuntimeException("Invalid context mapping");
     }
 
-    private Individual createResourceModel(JsonObject mappingContext, JsonObject mappingConfig, CSVRecord record) {
-        OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-
-        OntResource resourceClass = model.createOntResource(mappingContext.get("@id").getAsString());
+    private Individual createResourceModel(JsonObject mappingContext, JsonObject mappingConfig, CSVRecord record, OntModel ontologyModel) {
+        OntResource resourceClass = ontologyModel.createOntResource(mappingContext.get("@type").getAsString());
         String uri = createResourceUri(mappingConfig, record, resourceClass.getURI());
+        OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         Individual individual = model.createIndividual(uri, resourceClass);
 
         if (!mappingContext.isJsonNull()) {
             Set<Entry<String, JsonElement>> entrySet = mappingContext.getAsJsonObject().entrySet();
             for (Entry<String, JsonElement> entry : entrySet) {
-                if (entry.getKey().equals("@id")) {
+                if (entry.getKey().equals("@type")) {
                     continue;
                 }
                 if (entry.getValue().isJsonPrimitive()) {
-                    DatatypeProperty property = model.createDatatypeProperty(entry.getValue().getAsString());
+                    DatatypeProperty property = ontologyModel.createDatatypeProperty(entry.getValue().getAsString());
                     individual.addProperty(property, record.get(entry.getKey()));
                 }
                 if (entry.getValue().isJsonObject()) {
-                    Individual innerResource = createResourceModel(entry.getValue().getAsJsonObject(), mappingConfig, record);
-                    ObjectProperty property = model.createObjectProperty(entry.getValue().getAsJsonObject().get("@id").getAsString());
+                    Individual innerResource = createResourceModel(entry.getValue().getAsJsonObject(), mappingConfig, record, ontologyModel);
+                    ObjectProperty property = ontologyModel.getObjectProperty(entry.getKey());
+                    if (property == null) {
+                        property = ontologyModel.createObjectProperty(entry.getKey());
+                    }
                     individual.addProperty(property, innerResource);
                     individual.getModel().add(innerResource.getModel());
+                    if (property.hasInverse()) {
+                        OntProperty inverseOf = property.getInverseOf();
+                        innerResource.addProperty(inverseOf, individual);
+                    }
                 }
             }
         }
         return individual;
+    }
+
+    private OntModel createOntologyModel() {
+        String ontologyString = null;
+        try {
+            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        OntModel ontologyModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+        ontologyModel.read(new StringReader(ontologyString), null, "N3");
+        return ontologyModel;
     }
 
     private String createResourceUri(JsonObject mappingConfig, CSVRecord record, String resourceTypeUri) {
