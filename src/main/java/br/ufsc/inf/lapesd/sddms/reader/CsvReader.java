@@ -13,11 +13,14 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.csv.CSVFormat;
@@ -27,12 +30,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.DatatypeProperty;
 import org.apache.jena.ontology.Individual;
 import org.apache.jena.ontology.ObjectProperty;
+import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.ontology.OntProperty;
-import org.apache.jena.ontology.OntResource;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.JsonArray;
@@ -40,7 +45,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import br.ufsc.inf.lapesd.sddms.DataBase;
+import br.ufsc.inf.lapesd.sddms.database.DataBase;
+import br.ufsc.inf.lapesd.sddms.database.TDBDataBase;
 
 @Component
 public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
@@ -48,12 +54,22 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
     @Autowired
     private DataBase dataBase;
 
+    @Value("${config.ontologyFile}")
     private String ontologyFile;
 
-    public void setDataBase(DataBase dataBase) {
+    private Map<String, OntProperty> mapInverseProperties = new HashMap<>();
+
+    public void setDataBase(TDBDataBase dataBase) {
         this.dataBase = dataBase;
     }
 
+    @PostConstruct
+    public void init() {
+        OntModel ontologyModel = createOntologyModel();
+        this.createMapInverseProperties(ontologyModel);
+    }
+
+    @Override
     public void setOntologyFile(String ontologyFile) {
         this.ontologyFile = ontologyFile;
     }
@@ -68,10 +84,8 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
     @Override
     public void readAndStore(String pathToFiles) {
         recordsProcessed = 0;
-        OntModel ontologyModel = createOntologyModel();
 
         try {
-
             JsonObject mappingContext = createContextMapping(pathToFiles);
             JsonObject mappingConfing = createConfigMapping(pathToFiles);
 
@@ -94,11 +108,13 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
                 }
 
                 for (CSVRecord record : records) {
-                    Individual resource = createResourceModel(mappingContext, mappingConfing, record, ontologyModel);
+                    Individual resource = createResourceModel(mappingContext, mappingConfing, record);
                     dataBase.store(resource.getModel());
                     System.out.println(++recordsProcessed + " records processed");
                 }
+                dataBase.commit();
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -132,10 +148,22 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
         throw new RuntimeException("Invalid context mapping");
     }
 
-    private Individual createResourceModel(JsonObject mappingContext, JsonObject mappingConfig, CSVRecord record, OntModel ontologyModel) {
-        OntResource resourceClass = ontologyModel.createOntResource(mappingContext.get("@type").getAsString());
-        String uri = createResourceUri(mappingContext, record, resourceClass.getURI());
+    private void createMapInverseProperties(OntModel ontologyModel) {
+        ExtendedIterator<OntProperty> listAllOntProperties = ontologyModel.listAllOntProperties();
+        while (listAllOntProperties.hasNext()) {
+            OntProperty prop = listAllOntProperties.next();
+            if (prop.hasInverse()) {
+                OntProperty inverseOf = prop.getInverseOf();
+                this.mapInverseProperties.put(prop.getURI(), inverseOf);
+            }
+        }
+    }
+
+    private Individual createResourceModel(JsonObject mappingContext, JsonObject mappingConfig, CSVRecord record) {
         OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        OntClass resourceClass = model.createClass(mappingContext.get("@type").getAsString());
+        String uri = createResourceUri(mappingContext, record, resourceClass.getURI());
+        model.createClass(mappingContext.get("@type").getAsString());
         Individual individual = model.createIndividual(uri, resourceClass);
 
         if (!mappingContext.isJsonNull()) {
@@ -145,21 +173,21 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
                     continue;
                 }
                 if (entry.getValue().isJsonPrimitive()) {
-                    DatatypeProperty property = ontologyModel.createDatatypeProperty(entry.getValue().getAsString());
+                    DatatypeProperty property = model.createDatatypeProperty(entry.getValue().getAsString());
                     individual.addProperty(property, record.get(entry.getKey()));
                 }
                 if (entry.getValue().isJsonObject()) {
-                    Individual innerResource = createResourceModel(entry.getValue().getAsJsonObject(), mappingConfig, record, ontologyModel);
-                    ObjectProperty property = ontologyModel.getObjectProperty(entry.getKey());
-                    if (property == null) {
-                        property = ontologyModel.createObjectProperty(entry.getKey());
-                    }
+                    Individual innerResource = createResourceModel(entry.getValue().getAsJsonObject(), mappingConfig, record);
+                    ObjectProperty property = model.createObjectProperty(entry.getKey());
+
                     individual.addProperty(property, innerResource);
-                    individual.getModel().add(innerResource.getModel());
-                    if (property.hasInverse()) {
-                        OntProperty inverseOf = property.getInverseOf();
+
+                    if (mapInverseProperties.get(property.getURI()) != null) {
+                        OntProperty inverseOf = mapInverseProperties.get(property.getURI());
                         innerResource.addProperty(inverseOf, individual);
                     }
+                    individual.getModel().add(innerResource.getModel());
+
                 }
             }
         }
@@ -203,7 +231,7 @@ public class CsvReader implements br.ufsc.inf.lapesd.sddms.reader.Reader {
         }
 
         String sha1 = sha1(resourceUri);
-        return "sddms-resource:" + sha1;
+        return "http://sddms-resource/" + sha1;
     }
 
     private String sha1(String input) {

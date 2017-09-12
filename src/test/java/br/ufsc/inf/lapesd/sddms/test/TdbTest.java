@@ -17,8 +17,8 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.tdb.TDBFactory;
 import org.junit.Test;
 
-import br.ufsc.inf.lapesd.sddms.DataBase;
 import br.ufsc.inf.lapesd.sddms.OwlRestrictionReasoner;
+import br.ufsc.inf.lapesd.sddms.database.TDBDataBase;
 
 public class TdbTest {
 
@@ -110,7 +110,7 @@ public class TdbTest {
         String directory = "C:\\Development\\eclipse-workspace\\sdd-ms\\tdb";
         String ontologyFile = "C:\\Development\\eclipse-workspace\\sdd-ms\\ontology.owl";
 
-        DataBase dataBase = new DataBase();
+        TDBDataBase dataBase = new TDBDataBase();
         dataBase.setDirectory(directory);
         dataBase.setOntologyFile(ontologyFile);
 

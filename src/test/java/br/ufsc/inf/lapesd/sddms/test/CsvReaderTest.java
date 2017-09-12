@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import com.github.jsonldjava.core.JsonLdError;
 
-import br.ufsc.inf.lapesd.sddms.DataBase;
+import br.ufsc.inf.lapesd.sddms.database.TDBDataBase;
 import br.ufsc.inf.lapesd.sddms.reader.CsvReader;
 
 public class CsvReaderTest {
@@ -17,7 +17,7 @@ public class CsvReaderTest {
     @Test
     public void mustReadFiles() throws IOException, JsonLdError {
         String directory = "C:\\Development\\tdb-boletins";
-        DataBase dataBase = new DataBase(directory);
+        TDBDataBase dataBase = new TDBDataBase(directory);
         CsvReader reader = new CsvReader();
         reader.setDataBase(dataBase);
         String pathToFiles = this.getClass().getResource("/csvReaderTest/datasetCollection2").getFile();
@@ -30,7 +30,7 @@ public class CsvReaderTest {
     public void loadAllClasses() throws IOException {
         // Make a TDB-backed dataset
         String directory = "C:\\Development\\tdb-boletins";
-        DataBase dataBase = new DataBase(directory);
+        TDBDataBase dataBase = new TDBDataBase(directory);
         String ontologyFilepath = "C:\\Development\\eclipse-workspace\\sdd-ms\\src\\test\\resources\\csvReaderTest\\ontology.owl";
         dataBase.setOntologyFile(ontologyFilepath);
 
@@ -41,23 +41,10 @@ public class CsvReaderTest {
     }
 
     @Test
-    public void loadAllBoletins() throws IOException {
-        // Make a TDB-backed dataset
-        String directory = "C:\\Development\\tdb-boletins";
-        DataBase dataBase = new DataBase(directory);
-        String ontologyFilepath = "C:\\Development\\eclipse-workspace\\sdd-ms\\src\\test\\resources\\csvReaderTest\\ontology.owl";
-        dataBase.setOntologyFile(ontologyFilepath);
-        List<String> listAllResources = dataBase.listAllResources("http://www.public-security-ontology/BoletimOcorrencia");
-        for (String string : listAllResources) {
-            System.out.println(string);
-        }
-    }
-
-    @Test
     public void loadBoletim() throws IOException {
         // Make a TDB-backed dataset
         String directory = "C:\\Development\\tdb-boletins";
-        DataBase dataBase = new DataBase(directory);
+        TDBDataBase dataBase = new TDBDataBase(directory);
         String ontologyFilepath = "C:\\Development\\eclipse-workspace\\sdd-ms\\src\\test\\resources\\csvReaderTest\\ontology.owl";
         dataBase.setOntologyFile(ontologyFilepath);
         Model load = dataBase.load("sddms-resource:559B4006499E34A5749091D7C280F16DE32D4092");

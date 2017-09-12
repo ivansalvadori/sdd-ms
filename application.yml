@@ -1,4 +1,6 @@
 server.port: 8081
 config:
-  filePath: "dataset"
+  filePath: "data2"
   ontologyFile: "ontology.owl"
+  persistenceType: "fuseki"
+  enableInference: true

@@ -11,5 +11,7 @@ api:localDaOcorrencia a owl:ObjectProperty .
 api:localDaOcorrencia owl:inverseOf api:possuiBoletimOcorrencia .
 
 api:BoletimOcorrencia a owl:Class .
+api:VeiculoFurtado a owl:Class .
+
 api:LocalDaOcorrencia a owl:Class .
 api:GeoLocalizacao a owl:Class .

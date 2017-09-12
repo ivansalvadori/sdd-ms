@@ -3,13 +3,12 @@ package br.ufsc.inf.lapesd.sddms;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.jena.rdf.model.Model;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import br.ufsc.inf.lapesd.sddms.database.DataBase;
 import br.ufsc.inf.lapesd.sddms.reader.Reader;
 
 @Component
@@ -23,14 +22,6 @@ public class DataManager {
 
     @Value("${config.filePath}")
     private String directory;
-
-    @Value("${config.ontologyFile}")
-    private String ontologyFile;
-
-    @PostConstruct
-    public void init() {
-        this.dataBase.setOntologyFile(ontologyFile);
-    }
 
     public int getReadingStatus() {
         return this.reader.getRecordsProcessed();
@@ -46,10 +37,6 @@ public class DataManager {
 
     public List<String> getAllManagedSemanticClasses() {
         return dataBase.listAllClasses();
-    }
-
-    public List<String> listAllResourceUris(String rdfType) {
-        return dataBase.listAllResources(rdfType);
     }
 
     public Model getResource(String uri) {
