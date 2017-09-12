@@ -208,7 +208,7 @@ public class FusekiDataBase implements DataBase {
             queryStr.append(sparqlFragment);
         }
 
-        queryStr.append("} ");
+        queryStr.append("} limit 10 ");
 
         Query query = QueryFactory.create(queryStr.toString());
         QueryExecution qexec = QueryExecutionFactory.create(query, infModel);

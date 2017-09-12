@@ -1,6 +1,6 @@
 server.port: 8081
 config:
-  filePath: "data2"
+  filePath: "data"
   ontologyFile: "ontology.owl"
-  persistenceType: "fuseki"
+  persistenceType: "rdffiles"
   enableInference: true

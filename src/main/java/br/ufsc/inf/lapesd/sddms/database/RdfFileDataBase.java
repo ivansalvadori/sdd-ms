@@ -10,9 +10,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
@@ -46,9 +48,9 @@ public class RdfFileDataBase implements DataBase {
 
     private InfModel currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 
-    private int modelIndex = 0;
     private int insertedStatementsIntoCurrenteModel = 0;
-    private Map<String, List<Integer>> mapResourcUriModels = new HashMap<>();
+    private Map<String, Set<String>> mapResourcUriModels = new HashMap<>();
+    private Set<String> modelIDs = new HashSet<>();
 
     @PostConstruct
     public void init() {
@@ -64,7 +66,6 @@ public class RdfFileDataBase implements DataBase {
     public void store(Model model) {
         if (insertedStatementsIntoCurrenteModel >= 10000) {
             writeToFile(currentModel);
-            this.modelIndex++;
             currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
             insertedStatementsIntoCurrenteModel = 0;
         }
@@ -74,31 +75,19 @@ public class RdfFileDataBase implements DataBase {
             currentModel.add(listStatementsmodel.next());
             insertedStatementsIntoCurrenteModel++;
         }
-
-        ResIterator listSubjects = model.listSubjects();
-        while (listSubjects.hasNext()) {
-            String uri = listSubjects.next().getURI();
-            if (!uri.startsWith("http://sddms-resource/")) {
-                continue;
-            }
-            List<Integer> models = this.mapResourcUriModels.get(uri);
-            if (models == null) {
-                models = new ArrayList<>();
-            }
-            models.add(this.modelIndex);
-            this.mapResourcUriModels.put(uri, models);
-        }
     }
 
     private void writeToFile(Model model) {
-        String fileName = "rdf-files/" + this.modelIndex;
-        try (FileWriter fostream = new FileWriter(fileName, false);) {
+        String modelId = UUID.randomUUID().toString();
+        String fileName = "rdf-files/" + modelId;
+        try (FileWriter fostream = new FileWriter(fileName, true);) {
             BufferedWriter out = new BufferedWriter(fostream);
-            model.write(out, Lang.RDFXML.getName());
+            model.write(out, Lang.NTRIPLES.getName());
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        this.modelIDs.add(modelId);
     }
 
     @Override
@@ -131,10 +120,9 @@ public class RdfFileDataBase implements DataBase {
     @Override
     public Model load(String resourceUri) {
         OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-
-        List<Integer> modelIndexes = this.mapResourcUriModels.get(resourceUri);
-        for (Integer modelIndex : modelIndexes) {
-            InfModel model = this.readModelFromFile(String.valueOf(modelIndex));
+        Set<String> modelIds = this.mapResourcUriModels.get(resourceUri);
+        for (String modelId : modelIds) {
+            InfModel model = this.readModelFromFile(String.valueOf(modelId));
             Resource resource = model.getResource(resourceUri);
             StmtIterator properties = resource.listProperties();
             while (properties.hasNext()) {
@@ -150,17 +138,19 @@ public class RdfFileDataBase implements DataBase {
         Resource resourceListType = resourceModel.createResource("https://www.w3.org/ns/hydra/core#" + "Collection");
         Resource resourceList = resourceModel.createResource("http://sddms.com.br/ontology/" + "ResourceList", resourceListType);
 
-        String requestedModel = "0";
+        List<String> listModelIds = new ArrayList<>(this.modelIDs);
+
+        String requestedModelId = listModelIds.get(0);
 
         if (propertiesAndvalues.get("sddms:pageId") != null) {
-            requestedModel = propertiesAndvalues.get("sddms:pageId");
+            requestedModelId = propertiesAndvalues.get("sddms:pageId");
             propertiesAndvalues.remove("sddms:pageId");
         }
 
-        InfModel infModel = this.readModelFromFile(requestedModel);
+        InfModel infModel = this.readModelFromFile(requestedModelId);
 
         if (this.enableInference) {
-            infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.readModelFromFile(requestedModel));
+            infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.readModelFromFile(requestedModelId));
         }
         infModel.add(createOntologyModel());
 
@@ -193,10 +183,14 @@ public class RdfFileDataBase implements DataBase {
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
 
         }
-        int requestedModelInt = Integer.parseInt(requestedModel);
-        resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + (requestedModelInt + 1));
-        if (requestedModelInt > 0) {
-            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + (requestedModelInt - 1));
+        int indexOfRequestedModelId = listModelIds.indexOf(requestedModelId);
+
+        if (indexOfRequestedModelId < listModelIds.size() - 1) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId + 1));
+        }
+
+        if (indexOfRequestedModelId > 0) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId - 1));
         }
 
         qexec.close();
@@ -217,29 +211,30 @@ public class RdfFileDataBase implements DataBase {
         return infModel;
     }
 
-    private InfModel readModelFromFile(String modelIndex) {
+    private InfModel readModelFromFile(String modelId) {
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-        RDFDataMgr.read(infModel, "rdf-files/" + modelIndex, Lang.RDFXML);
+        RDFDataMgr.read(infModel, "rdf-files/" + modelId, Lang.NTRIPLES);
         return infModel;
     }
 
     private void indexResources() {
         Collection<File> files = FileUtils.listFiles(new File("rdf-files/"), null, true);
         for (File file : files) {
-            String modelIndex = file.getName();
-            System.out.println("reading model " + modelIndex);
-            InfModel model = this.readModelFromFile(modelIndex);
+            String modelId = file.getName();
+            this.modelIDs.add(modelId);
+            System.out.println("indexing model " + modelId);
+            InfModel model = this.readModelFromFile(modelId);
             ResIterator listSubjects = model.listSubjects();
             while (listSubjects.hasNext()) {
                 String uri = listSubjects.next().getURI();
                 if (!uri.startsWith("http://sddms-resource/")) {
                     continue;
                 }
-                List<Integer> models = this.mapResourcUriModels.get(uri);
+                Set<String> models = this.mapResourcUriModels.get(uri);
                 if (models == null) {
-                    models = new ArrayList<>();
+                    models = new HashSet<>();
                 }
-                models.add(Integer.parseInt(modelIndex));
+                models.add(modelId);
                 this.mapResourcUriModels.put(uri, models);
             }
         }
@@ -249,6 +244,7 @@ public class RdfFileDataBase implements DataBase {
     @Override
     public void commit() {
         writeToFile(currentModel);
+        indexResources();
     }
 
 }
