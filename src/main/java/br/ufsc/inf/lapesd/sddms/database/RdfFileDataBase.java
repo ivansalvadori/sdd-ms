@@ -121,6 +121,9 @@ public class RdfFileDataBase implements DataBase {
     public Model load(String resourceUri) {
         OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         Set<String> modelIds = this.mapResourcUriModels.get(resourceUri);
+        if (modelIds == null) {
+            return resourceModel;
+        }
         for (String modelId : modelIds) {
             InfModel model = this.readModelFromFile(String.valueOf(modelId));
             Resource resource = model.getResource(resourceUri);
@@ -166,8 +169,8 @@ public class RdfFileDataBase implements DataBase {
 
         for (String prop : properties) {
             indexProperty = indexProperty + 1;
-            String sparqlFragment = "?resource <%s> ?%s . FILTER( ?%s = \"%s\" ).  \n";
-            sparqlFragment = String.format(sparqlFragment, prop, indexProperty, indexProperty, propertiesAndvalues.get(prop));
+            String sparqlFragment = "?resource <%s> \"%s\" .  \n";
+            sparqlFragment = String.format(sparqlFragment, prop, propertiesAndvalues.get(prop));
             queryStr.append(sparqlFragment);
         }
 
@@ -227,7 +230,7 @@ public class RdfFileDataBase implements DataBase {
             ResIterator listSubjects = model.listSubjects();
             while (listSubjects.hasNext()) {
                 String uri = listSubjects.next().getURI();
-                if (!uri.startsWith("http://sddms-resource/")) {
+                if (!uri.startsWith("http://example.com/")) {
                     continue;
                 }
                 Set<String> models = this.mapResourcUriModels.get(uri);

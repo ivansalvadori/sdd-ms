@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,12 +22,12 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.InfModel;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.rdf.model.StmtIterator;
 import org.springframework.beans.factory.annotation.Value;
 
-public class InMemoryDataBase implements DataBase {
+public class FusekiSingleModelDataBase implements DataBase {
 
     @Value("${config.ontologyFile}")
     private String ontologyFile;
@@ -34,32 +35,29 @@ public class InMemoryDataBase implements DataBase {
     @Value("${config.enableInference}")
     private boolean enableInference;
 
-    private final int pageSize = 10;
-
-    private InfModel inmemoryModel = null;
+    private Map<String, List<String>> mapResourcUriGraph = new HashMap<>();
 
     @PostConstruct
     public void init() {
-        inmemoryModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-        inmemoryModel.add(createOntologyModel());
-        System.out.println("init inmemory");
+        System.out.println("init");
+    }
+
+    public FusekiSingleModelDataBase() {
     }
 
     public void setOntologyFile(String ontologyFile) {
         this.ontologyFile = ontologyFile;
     }
 
+    int storedResourcesCounter = 0;
+
     @Override
     public void store(Model model) {
-        StmtIterator listStatements = model.listStatements();
-        while (listStatements.hasNext()) {
-            inmemoryModel.add(listStatements.next());
-        }
     }
 
     @Override
     public void resetDataset() {
-        inmemoryModel.removeAll();
+        throw new RuntimeException("Not implemented yet.");
     }
 
     @Override
@@ -90,13 +88,23 @@ public class InMemoryDataBase implements DataBase {
     @Override
     public Model load(String resourceUri) {
         OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, inmemoryModel);
-        infModel.add(createOntologyModel());
+        Resource createResource = resourceModel.createResource(resourceUri);
 
-        Resource resource = infModel.getResource(resourceUri);
-        StmtIterator properties = resource.listProperties();
-        while (properties.hasNext()) {
-            resourceModel.add(properties.next());
+        StringBuilder queryStr = new StringBuilder();
+        String sparqlFragment = String.format("SELECT ?p ?o { <%s> ?p ?o} ", resourceUri);
+        queryStr.append(sparqlFragment);
+
+        Query query = QueryFactory.create(queryStr.toString());
+        QueryExecution qexec = QueryExecutionFactory.sparqlService("http://localhost:3030/ds/query", query);
+        ResultSet results = qexec.execSelect();
+
+        while (results.hasNext()) {
+            QuerySolution next = results.next();
+            Resource predicate = next.getResource("p");
+            RDFNode rdfNode = next.get("o");
+            System.out.println(predicate.getURI());
+            System.out.println(rdfNode);
+            createResource.addProperty(resourceModel.createProperty(predicate.getURI()), rdfNode);
         }
 
         return resourceModel;
@@ -104,15 +112,9 @@ public class InMemoryDataBase implements DataBase {
 
     @Override
     public Model queryTDB(String rdfType, Map<String, String> propertiesAndvalues) {
-        InfModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        InfModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
         Resource resourceListType = resourceModel.createResource("https://www.w3.org/ns/hydra/core#" + "Collection");
         Resource resourceList = resourceModel.createResource("http://sddms.com.br/ontology/" + "ResourceList", resourceListType);
-
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM, this.inmemoryModel);
-        if (this.enableInference) {
-            infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.inmemoryModel);
-        }
-        infModel.add(createOntologyModel());
 
         int requestedOffset = 0;
         if (propertiesAndvalues.get("sddms:pageId") != null) {
@@ -137,20 +139,10 @@ public class InMemoryDataBase implements DataBase {
             queryStr.append(sparqlFragment);
         }
 
-        queryStr.append("}  ");
-
-        System.out.println(queryStr.toString());
-
-        if (propertiesAndvalues.get("hydra:next") != null) {
-            requestedOffset = Integer.parseInt(propertiesAndvalues.get("hydra:next"));
-            propertiesAndvalues.remove("hydra:next");
-        }
-
-        String pagination = String.format("limit %s offset %s", this.pageSize, this.pageSize * requestedOffset);
-        queryStr.append(pagination);
+        queryStr.append("} limit 10 ");
 
         Query query = QueryFactory.create(queryStr.toString());
-        QueryExecution qexec = QueryExecutionFactory.create(query, infModel);
+        QueryExecution qexec = QueryExecutionFactory.sparqlService("http://localhost:3030/ds/query", query);
         ResultSet results = qexec.execSelect();
 
         while (results.hasNext()) {
@@ -166,6 +158,7 @@ public class InMemoryDataBase implements DataBase {
 
         qexec.close();
         return resourceModel;
+
     }
 
     private Model createOntologyModel() {
@@ -184,8 +177,6 @@ public class InMemoryDataBase implements DataBase {
 
     @Override
     public void commit() {
-        // TODO Auto-generated method stub
-
     }
 
 }

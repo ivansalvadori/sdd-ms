@@ -54,7 +54,7 @@ public class ResourcesEndpoint {
         StringWriter out = new StringWriter();
         renamedResource.getModel().write(out, Lang.JSONLD.getName());
         String resourceString = out.toString();
-        String resourceStringReplaced = resourceString.replaceAll("http://sddms-resource/", uriInfo.getBaseUri() + "resource?uri=");
+        String resourceStringReplaced = resourceString.replaceAll("http://example.com/", uriInfo.getBaseUri() + "resource?uri=");
 
         String requestedUriPagination = createLinkForPagination(pageId, queryParameters, keySet);
 
@@ -82,8 +82,7 @@ public class ResourcesEndpoint {
     @Path("/resource")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listAllResources(@QueryParam("uri") String uri) {
-        Model resource = dataManager.getResource("http://sddms-resource/" + uri);
-
+        Model resource = dataManager.getResource("http://example.com/" + uri);
         Resource renamedResource = ResourceUtils.renameResource(resource.getResource(uri), uriInfo.getRequestUri().toString());
         StringWriter out = new StringWriter();
         renamedResource.getModel().write(out, Lang.JSONLD.getName());

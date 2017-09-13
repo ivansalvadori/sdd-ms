@@ -2,5 +2,5 @@ server.port: 8081
 config:
   filePath: "data"
   ontologyFile: "ontology.owl"
-  persistenceType: "rdffiles"
+  persistenceType: "TDBSingleModel"
   enableInference: true
