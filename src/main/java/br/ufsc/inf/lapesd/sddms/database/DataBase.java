@@ -18,4 +18,5 @@ public interface DataBase {
     Model load(String resourceUri);
 
     Model queryTDB(String rdfType, Map<String, String> propertiesAndvalues);
+
 }

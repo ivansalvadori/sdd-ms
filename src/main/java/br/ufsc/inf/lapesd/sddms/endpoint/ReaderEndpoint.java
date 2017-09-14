@@ -30,7 +30,7 @@ public class ReaderEndpoint {
     @Path("status")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getReadingStatus() {
-        return Response.ok(dataManager.getReadingStatus()).build();
+        return Response.ok("").build();
     }
 
     @GET

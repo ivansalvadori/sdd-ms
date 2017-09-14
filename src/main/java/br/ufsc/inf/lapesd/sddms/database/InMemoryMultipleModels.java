@@ -1,7 +1,10 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -11,6 +14,8 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -25,24 +30,31 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.jena.riot.Lang;
 
-public class InMemoryMultipleModels implements DataBase {
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-    @Value("${config.ontologyFile}")
-    private String ontologyFile;
+import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
 
-    @Value("${config.enableInference}")
-    private boolean enableInference;
-
+public class InMemoryMultipleModels implements DataBase, CsvReaderListener {
     private List<InfModel> inmemoryModels = new ArrayList<>();
 
-    private int insertedStatementsIntoCurrenteModel = 0;
+    private String ontologyFile;
+    private boolean enableInference;
+    private String ontologyFormat = Lang.N3.getName();
+    protected int resourcesPerFile = 1;
+
+    private int writerBatchController = 0;
 
     @PostConstruct
     public void init() {
-        System.out.println("init inmemory Big database");
-        // Model model = RDFDataMgr.loadModel("triplifyedData.rdf");
+        System.out.println("Inmemory multiple models");
+        JsonObject mappingConfing = createConfigMapping();
+        this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
+        this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
+        this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
+        this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
     }
 
     public void setOntologyFile(String ontologyFile) {
@@ -60,20 +72,16 @@ public class InMemoryMultipleModels implements DataBase {
         int lastModelIndex = inmemoryModels.size() - 1;
         InfModel lastModel = inmemoryModels.get(lastModelIndex);
 
-        if (insertedStatementsIntoCurrenteModel >= 10000) {
+        if (writerBatchController == this.resourcesPerFile) {
             InfModel inmemoryModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
             System.out.println("Created model " + inmemoryModels.size());
-            insertedStatementsIntoCurrenteModel = 0;
-            // inmemoryModel.add(createOntologyModel());
+            writerBatchController = 0;
             inmemoryModels.add(inmemoryModel);
             lastModel = inmemoryModel;
         }
 
-        StmtIterator listStatementsmodel = model.listStatements();
-        while (listStatementsmodel.hasNext()) {
-            lastModel.add(listStatementsmodel.next());
-            insertedStatementsIntoCurrenteModel++;
-        }
+        lastModel.add(model);
+        writerBatchController++;
     }
 
     @Override
@@ -95,7 +103,6 @@ public class InMemoryMultipleModels implements DataBase {
         while (results.hasNext()) {
             QuerySolution next = results.next();
             Resource resource = next.getResource("type");
-            // TODO: remove owl concepts
             String uri = resource.getURI();
             if (uri != null && !uri.startsWith("http://www.w3.org/")) {
                 rdfTypes.add(uri);
@@ -139,7 +146,11 @@ public class InMemoryMultipleModels implements DataBase {
         }
 
         if (propertiesAndvalues.get("sddms:pageId") != null) {
-            requestedModel = Integer.parseInt(propertiesAndvalues.get("sddms:pageId"));
+            try {
+                requestedModel = Integer.parseInt(propertiesAndvalues.get("sddms:pageId"));
+            } catch (NumberFormatException e) {
+                return resourceModel;
+            }
             propertiesAndvalues.remove("sddms:pageId");
         }
 
@@ -161,8 +172,8 @@ public class InMemoryMultipleModels implements DataBase {
 
         for (String prop : properties) {
             indexProperty = indexProperty + 1;
-            String sparqlFragment = "?resource <%s> ?%s . FILTER( ?%s = \"%s\" ).  \n";
-            sparqlFragment = String.format(sparqlFragment, prop, indexProperty, indexProperty, propertiesAndvalues.get(prop));
+            String sparqlFragment = "?resource <%s> \"%s\" .  \n";
+            sparqlFragment = String.format(sparqlFragment, prop, propertiesAndvalues.get(prop));
             queryStr.append(sparqlFragment);
         }
 
@@ -178,7 +189,9 @@ public class InMemoryMultipleModels implements DataBase {
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
 
         }
-        resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + (requestedModel + 1));
+        if (requestedModel < inmemoryModels.size() - 1) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + (requestedModel + 1));
+        }
         if (requestedModel > 0) {
             resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + (requestedModel - 1));
         }
@@ -197,14 +210,33 @@ public class InMemoryMultipleModels implements DataBase {
         }
 
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, "N3");
+        infModel.read(new StringReader(ontologyString), null, this.ontologyFormat);
         return infModel;
     }
 
     @Override
     public void commit() {
-        // TODO Auto-generated method stub
+        // nothing to do
+    }
 
+    private JsonObject createConfigMapping() {
+        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
+            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
+            return mappingJsonObject.get("@configuration").getAsJsonObject();
+        } catch (IOException e) {
+            throw new RuntimeException("Mapping file not found");
+        }
+    }
+
+    @Override
+    public void justRead(Model model) {
+        this.store(model);
+    }
+
+    @Override
+    public void readProcessFinished() {
+        // nothing to do
     }
 
 }

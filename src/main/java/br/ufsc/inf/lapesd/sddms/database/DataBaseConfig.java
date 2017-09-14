@@ -16,18 +16,16 @@ public class DataBaseConfig {
             return new InMemoryDataBase();
         } else if (persistenceType.equalsIgnoreCase("fuseki")) {
             return new FusekiDataBase();
-        } else if (persistenceType.equalsIgnoreCase("usekiSingleModel")) {
+        } else if (persistenceType.equalsIgnoreCase("fusekiSingleModel")) {
             return new FusekiSingleModelDataBase();
         } else if (persistenceType.equalsIgnoreCase("tdbSingleModel")) {
             return new TDBSingleModelDataBase();
         } else if (persistenceType.equalsIgnoreCase("InMemoryMultipleModels")) {
             return new InMemoryMultipleModels();
         } else if (persistenceType.equalsIgnoreCase("RdfFiles")) {
-            return new RdfFileDataBase();
-        } else if (persistenceType.equalsIgnoreCase("RdfFileSingleModel")) {
-            return new RdfFileSingleModelDataBase();
+            return new RdfMultipleModelsDataBase();
         } else {
-            return new TDBDataBase();
+            return new TDBMultipleModelsDataBase();
         }
     }
 

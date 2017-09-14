@@ -1,10 +1,13 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -14,6 +17,8 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Dataset;
@@ -34,30 +39,40 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.reasoner.Reasoner;
 import org.apache.jena.reasoner.rulesys.GenericRuleReasoner;
 import org.apache.jena.reasoner.rulesys.Rule;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.tdb.TDBFactory;
-import org.springframework.beans.factory.annotation.Value;
 
-public class TDBSingleModelDataBase implements DataBase {
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
+
+public class TDBSingleModelDataBase implements DataBase, CsvReaderListener {
 
     private String tdbDirectory = "tdb";
-
-    @Value("${config.ontologyFile}")
-    private String ontologyFile;
-
-    @Value("${config.enableInference}")
-    private boolean enableInference;
-
     private InfModel currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-
     private final int pageSize = 10;
 
     private Reasoner dataReasoner;
     private final String owlrules = "owl-fb.rules";
 
+    private String ontologyFile;
+    private boolean enableInference;
+    private String ontologyFormat = Lang.N3.getName();
+
+    private int writerBatchController = 0;
+    protected int resourcesPerFile = 0;
+
     @PostConstruct
     public void init() {
-        System.out.println("init");
+        System.out.println("TDB single model database");
         dataReasoner = createReasoner(owlrules);
+
+        JsonObject mappingConfing = createConfigMapping();
+        this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
+        this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
+        this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
+        this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
     }
 
     private GenericRuleReasoner createReasoner(String... rulesFiles) {
@@ -75,46 +90,19 @@ public class TDBSingleModelDataBase implements DataBase {
         return gReasoner;
     }
 
-    public TDBSingleModelDataBase() {
-    }
-
-    public void setOntologyFile(String ontologyFile) {
-        this.ontologyFile = ontologyFile;
-    }
-
-    public void setDirectory(String directory) {
-        this.tdbDirectory = directory;
-    }
-
-    public TDBSingleModelDataBase(String directory) {
-        this.tdbDirectory = directory;
-    }
-
-    int insertedStatementsIntoCurrenteModel = 0;
-
     @Override
     public void store(Model model) {
-        if (insertedStatementsIntoCurrenteModel >= 10000) {
+        if (writerBatchController == 1000) {
             persit(currentModel);
             currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-            insertedStatementsIntoCurrenteModel = 0;
+            writerBatchController = 0;
         }
-
-        StmtIterator listStatementsmodel = model.listStatements();
-        while (listStatementsmodel.hasNext()) {
-            currentModel.add(listStatementsmodel.next());
-            insertedStatementsIntoCurrenteModel++;
-        }
-
+        currentModel.add(model);
+        writerBatchController++;
     }
 
     @Override
     public void resetDataset() {
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
-        dataset.begin(ReadWrite.WRITE);
-        dataset.getDefaultModel().removeAll();
-        dataset.commit();
-        dataset.close();
     }
 
     private void persit(Model model) {
@@ -129,7 +117,6 @@ public class TDBSingleModelDataBase implements DataBase {
 
         dataset.commit();
         dataset.close();
-        System.out.println("Persited");
     }
 
     @Override
@@ -176,8 +163,6 @@ public class TDBSingleModelDataBase implements DataBase {
             QuerySolution next = results.next();
             Resource predicate = next.getResource("p");
             RDFNode rdfNode = next.get("o");
-            System.out.println(predicate.getURI());
-            System.out.println(rdfNode);
             createResource.addProperty(resourceModel.createProperty(predicate.getURI()), rdfNode);
         }
 
@@ -200,9 +185,6 @@ public class TDBSingleModelDataBase implements DataBase {
             propertiesAndvalues.remove("sddms:pageId");
         }
 
-        InfModel infModel = ModelFactory.createInfModel(dataReasoner, dataset.getDefaultModel());
-        infModel.add(createOntologyModel());
-
         StringBuilder queryStr = new StringBuilder();
         queryStr.append("PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n");
         queryStr.append("PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n");
@@ -222,17 +204,10 @@ public class TDBSingleModelDataBase implements DataBase {
 
         queryStr.append("}   ");
 
-        if (propertiesAndvalues.get("hydra:next") != null) {
-            requestedOffset = Integer.parseInt(propertiesAndvalues.get("hydra:next"));
-            propertiesAndvalues.remove("hydra:next");
-        }
-
         String pagination = String.format("limit %s offset %s", this.pageSize, this.pageSize * requestedOffset);
         queryStr.append(pagination);
 
-        System.out.println(queryStr.toString());
-
-        QueryExecution qexec = QueryExecutionFactory.create(queryStr.toString(), infModel);
+        QueryExecution qexec = QueryExecutionFactory.create(queryStr.toString(), dataset);
         ResultSet results = qexec.execSelect();
 
         while (results.hasNext()) {
@@ -256,17 +231,44 @@ public class TDBSingleModelDataBase implements DataBase {
         try {
             ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, "N3");
+        infModel.read(new StringReader(ontologyString), null, this.ontologyFormat);
         return infModel;
     }
 
     @Override
     public void commit() {
-        persit(this.currentModel);
     }
+
+    private JsonObject createConfigMapping() {
+        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
+            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
+            return mappingJsonObject.get("@configuration").getAsJsonObject();
+        } catch (IOException e) {
+            throw new RuntimeException("Mapping file not found");
+        }
+    }
+
+    @Override
+    public void readProcessFinished() {
+        this.persit(this.currentModel);
+    }
+
+    @Override
+    public void justRead(Model model) {
+        this.store(model);
+    }
+
+    public void setOntologyFile(String ontologyFile) {
+        this.ontologyFile = ontologyFile;
+    }
+
+    public void setDirectory(String directory) {
+        this.tdbDirectory = directory;
+    }
+
 }

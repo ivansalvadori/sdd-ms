@@ -1,7 +1,10 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -10,6 +13,8 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -24,25 +29,34 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.jena.riot.Lang;
 
-public class InMemoryDataBase implements DataBase {
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-    @Value("${config.ontologyFile}")
+import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
+
+public class InMemoryDataBase implements DataBase, CsvReaderListener {
+
     private String ontologyFile;
-
-    @Value("${config.enableInference}")
     private boolean enableInference;
+    private String resourcePrefix = "";
+    private String ontologyFormat = Lang.N3.getName();
 
-    private final int pageSize = 10;
-
+    private final int pageSize = 100;
     private InfModel inmemoryModel = null;
 
     @PostConstruct
     public void init() {
+        JsonObject mappingConfing = createConfigMapping();
+        this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
+        this.resourcePrefix = mappingConfing.get("prefix").getAsString();
+        this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
+        this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
+
         inmemoryModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         inmemoryModel.add(createOntologyModel());
-        System.out.println("init inmemory");
+        System.out.println("Inmemory databse");
     }
 
     public void setOntologyFile(String ontologyFile) {
@@ -77,7 +91,6 @@ public class InMemoryDataBase implements DataBase {
         while (results.hasNext()) {
             QuerySolution next = results.next();
             Resource resource = next.getResource("type");
-            // TODO: remove owl concepts
             String uri = resource.getURI();
             if (uri != null && !uri.startsWith("http://www.w3.org/")) {
                 rdfTypes.add(uri);
@@ -137,14 +150,7 @@ public class InMemoryDataBase implements DataBase {
             queryStr.append(sparqlFragment);
         }
 
-        queryStr.append("}  ");
-
-        System.out.println(queryStr.toString());
-
-        if (propertiesAndvalues.get("hydra:next") != null) {
-            requestedOffset = Integer.parseInt(propertiesAndvalues.get("hydra:next"));
-            propertiesAndvalues.remove("hydra:next");
-        }
+        queryStr.append("} ");
 
         String pagination = String.format("limit %s offset %s", this.pageSize, this.pageSize * requestedOffset);
         queryStr.append(pagination);
@@ -173,19 +179,37 @@ public class InMemoryDataBase implements DataBase {
         try {
             ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, "N3");
+        infModel.read(new StringReader(ontologyString), null, ontologyFormat);
         return infModel;
     }
 
     @Override
     public void commit() {
-        // TODO Auto-generated method stub
+        // nothing to do
+    }
 
+    @Override
+    public void justRead(Model model) {
+        this.store(model);
+    }
+
+    @Override
+    public void readProcessFinished() {
+        // nothing to do
+    }
+
+    private JsonObject createConfigMapping() {
+        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
+            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
+            return mappingJsonObject.get("@configuration").getAsJsonObject();
+        } catch (IOException e) {
+            throw new RuntimeException("Mapping file not found");
+        }
     }
 
 }
