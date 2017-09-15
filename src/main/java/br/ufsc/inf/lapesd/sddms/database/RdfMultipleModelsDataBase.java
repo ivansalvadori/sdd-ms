@@ -62,6 +62,9 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
     private int writerBatchController = 0;
     protected int resourcesPerFile = 0;
     private boolean singleRdfOutputFile = true;
+    private String currentFileId = UUID.randomUUID().toString();
+
+    private long totalNumberOfTriples = 0;
 
     @PostConstruct
     public void init() {
@@ -82,14 +85,15 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
     public void store(Model model) {
         if (this.singleRdfOutputFile) {
             if (this.writerBatchController == 1000) {
-                writeToFile(currentModel);
+                writeToFile(currentModel, currentFileId);
                 this.currentModel.removeAll();
                 this.writerBatchController = 0;
             }
         }
 
         else if (this.resourcesPerFile == writerBatchController) {
-            writeToFile(this.currentModel);
+            this.currentFileId = UUID.randomUUID().toString();
+            writeToFile(this.currentModel, currentFileId);
             this.currentModel.removeAll();
             this.writerBatchController = 0;
         }
@@ -98,17 +102,17 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
         this.writerBatchController++;
     }
 
-    private void writeToFile(Model model) {
+    private void writeToFile(Model model, String fileId) {
+        String fileName = this.rdfFolder + "/output_" + fileId + ".ntriples";
+        write(model, fileName);
+    }
+
+    private void write(Model model, String fileName) {
         File directory = new File(this.rdfFolder);
         if (!directory.exists()) {
             directory.mkdir();
         }
 
-        String fileName = this.rdfFolder + "/output_" + UUID.randomUUID().toString() + ".ntriples";
-        write(model, fileName);
-    }
-
-    private void write(Model model, String fileName) {
         try (FileWriter fostream = new FileWriter(fileName, true);) {
             BufferedWriter out = new BufferedWriter(fostream);
             model.write(out, this.rdfFormat);
@@ -269,6 +273,13 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
             this.modelIDs.add(modelId);
             System.out.println("indexing model " + modelId);
             InfModel model = this.readModelFromFile(modelId);
+
+            StmtIterator statemants = model.listStatements();
+            while (statemants.hasNext()) {
+                statemants.next();
+                this.totalNumberOfTriples++;
+            }
+
             ResIterator listSubjects = model.listSubjects();
             while (listSubjects.hasNext()) {
                 String uri = listSubjects.next().getURI();
@@ -284,12 +295,11 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
             }
         }
         System.out.println("Index created");
+        System.out.println("Tiples: " + this.totalNumberOfTriples);
     }
 
     @Override
     public void commit() {
-        writeToFile(currentModel);
-        indexResources();
     }
 
     @Override
