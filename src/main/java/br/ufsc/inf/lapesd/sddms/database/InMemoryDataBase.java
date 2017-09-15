@@ -40,7 +40,6 @@ public class InMemoryDataBase implements DataBase, CsvReaderListener {
 
     private String ontologyFile;
     private boolean enableInference;
-    private String resourcePrefix = "";
     private String ontologyFormat = Lang.N3.getName();
 
     private final int pageSize = 100;
@@ -50,7 +49,6 @@ public class InMemoryDataBase implements DataBase, CsvReaderListener {
     public void init() {
         JsonObject mappingConfing = createConfigMapping();
         this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
-        this.resourcePrefix = mappingConfing.get("prefix").getAsString();
         this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
         this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
 
