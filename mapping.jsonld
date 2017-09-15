@@ -4,6 +4,7 @@
     "@uriProperty": ["NUMERO_BOLETIM", "DELEGACIA_NOME", "DELEGACIA_CIRCUNSCRICAO"],
     "NUMERO_BOLETIM": "http://www.public-security-ontology/numeroOcorrencia",
     "DATAOCORRENCIA": "http://www.public-security-ontology/dataOcorrencia",
+    "ANO_BO": "http://www.public-security-ontology/AnoOcorrencia",
     "PERIDOOCORRENCIA": "http://www.public-security-ontology/periodoOcorrencia",
     "DELEGACIA_NOME": "http://www.public-security-ontology/nomeDelegacia",
 	"DELEGACIA_CIRCUNSCRICAO": "http://www.public-security-ontology/circunscricaoDelegacia",	
@@ -23,7 +24,7 @@
       "DESCRICAOLOCAL": "http://www.public-security-ontology/tipoLocal",
       "http://www.public-security-ontology/geoLocalizacaoDaOcorrencia": {
         "@type": "http://www.public-security-ontology/GeoLocalizacao",
-        "@uriProperty": "RandomUri",
+        "@uriProperty": ["LATITUDE", "LONGITUDE"],
         "LATITUDE": "http://www.public-security-ontology/latitude",
         "LONGITUDE": "http://www.public-security-ontology/longitude"
       }
@@ -49,7 +50,7 @@
      "csvFilesFolder": "data",
      "prefix": "http://example.com/",
      "ontologyFormat": "N3",
-     "singleRdfOutputFile": false,   
+     "singleRdfOutputFile": true,   
      "resourcesPerFile": 10,
      "enableInference": true   
    }

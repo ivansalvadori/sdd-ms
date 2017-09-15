@@ -205,7 +205,14 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
             queryStr.append(sparqlFragment);
         }
 
-        queryStr.append("} ");
+        String sparqlFragmentOrderByClause = "?resource <%s> ?orderbyProp .  \n";
+        sparqlFragmentOrderByClause = String.format(sparqlFragmentOrderByClause, "http://www.public-security-ontology/dataOcorrencias");
+
+        // queryStr.append(sparqlFragmentOrderByClause);
+
+        queryStr.append("} \n");
+
+        // queryStr.append("ORDER BY DESC(?orderbyProp) ");
 
         Query query = QueryFactory.create(queryStr.toString());
         QueryExecution qexec = QueryExecutionFactory.create(query, infModel);
