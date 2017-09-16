@@ -71,9 +71,10 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
     public void store(Model model) {
         if (writerBatchController == resourcesPerFile) {
             System.out.println("Created model " + modelIndex);
-            writerBatchController = 0;
             this.persist(this.inmemoryTempModel);
             this.inmemoryTempModel.removeAll();
+            writerBatchController = 0;
+            this.modelIndex++;
         }
 
         this.inmemoryTempModel.add(model);
@@ -87,7 +88,6 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
         namedModel.add(model);
         dataset.commit();
         dataset.close();
-        this.modelIndex++;
     }
 
     @Override
