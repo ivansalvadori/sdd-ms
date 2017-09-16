@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.PostConstruct;
 
@@ -41,6 +40,9 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
+import org.mapdb.serializer.SerializerCompressionWrapper;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -142,16 +144,30 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     @Override
     public Model load(String resourceUri) {
-        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-
-        DB db = DBMaker.fileDB("index.db").readOnly().make();
-        ConcurrentMap<String, Set<String>> map = (ConcurrentMap<String, Set<String>>) db.hashMap("map").createOrOpen();
-
-        Set<String> modelIds = map.get(resourceUri);
-        if (modelIds == null) {
-            return resourceModel;
+        Set<String> modelIDsThatContainResourceUri = new HashSet<>();
+        DB db = DBMaker.fileDB("index.db").fileMmapEnable().readOnly().make();
+        Iterable<String> allNames = db.getAllNames();
+        for (String mapName : allNames) {
+            HTreeMap<String, String> map = db.hashMap(mapName).keySerializer(Serializer.STRING).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).open();
+            String modelId = map.get(resourceUri);
+            if (modelId == null) {
+                continue;
+            }
+            if (modelId.contains("+")) {
+                String[] split = modelId.split("+");
+                for (String id : split) {
+                    modelIDsThatContainResourceUri.add(id);
+                }
+            } else {
+                modelIDsThatContainResourceUri.add(modelId);
+            }
         }
-        for (String modelId : modelIds) {
+        System.out.println(modelIDsThatContainResourceUri);
+
+        db.close();
+
+        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        for (String modelId : modelIDsThatContainResourceUri) {
             InfModel model = this.readModelFromFile(String.valueOf(modelId));
             Resource resource = model.getResource(resourceUri);
             StmtIterator properties = resource.listProperties();
@@ -159,7 +175,6 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
                 resourceModel.add(properties.next());
             }
         }
-        db.close();
         return resourceModel;
     }
 
@@ -258,21 +273,34 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
     }
 
     private void indexResources() {
-
         File directory = new File(this.rdfFolder);
         if (!directory.exists()) {
             System.out.println("RDF folder not found");
             return;
         }
+
         Collection<File> files = FileUtils.listFiles(new File(this.rdfFolder), null, true);
         for (File file : files) {
-
-            DB db = DBMaker.fileDB("index.db").make();
-            ConcurrentMap<String, Set<String>> map = (ConcurrentMap<String, Set<String>>) db.hashMap("map").createOrOpen();
-
             String modelId = file.getName();
             this.modelIDs.add(modelId);
-            System.out.println("indexing model " + modelId);
+        }
+
+        if (new File("index.db").exists()) {
+            return;
+        }
+
+        int numberOfFiles = files.size();
+        int fileCount = 0;
+        long totalNumberOfMapEntries = 0;
+
+        DB db = DBMaker.fileDB("index.db").fileMmapEnable().make();
+        HTreeMap<String, String> map = db.hashMap("map_" + UUID.randomUUID()).keySerializer(Serializer.STRING).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).create();
+
+        for (File file : files) {
+            String modelId = file.getName();
+            this.modelIDs.add(modelId);
+
+            System.out.println("indexing model " + modelId + " " + (++fileCount) + "/" + numberOfFiles);
             InfModel model = this.readModelFromFile(modelId);
 
             StmtIterator statemants = model.listStatements();
@@ -287,15 +315,23 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
                 if (!uri.startsWith(resourcePrefix)) {
                     continue;
                 }
-                Set<String> models = map.get(uri);
-                if (models == null) {
-                    models = new HashSet<>();
+                String existingUri = map.get(uri);
+                if (existingUri != null) {
+                    modelId = existingUri + "+" + uri;
                 }
-                models.add(modelId);
-                map.put(uri, models);
+
+                if (totalNumberOfMapEntries >= 100000) {
+                    System.out.println("creating a new index map");
+                    map = db.hashMap("map_" + UUID.randomUUID()).keySerializer(Serializer.STRING).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).create();
+                    totalNumberOfMapEntries = 0;
+                }
+                map.put(uri, modelId);
+                totalNumberOfMapEntries++;
+
             }
-            db.close();
+
         }
+        db.close();
         System.out.println("Index created");
         System.out.println("Tiples: " + this.totalNumberOfTriples);
     }

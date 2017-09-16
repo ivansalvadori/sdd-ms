@@ -43,12 +43,12 @@
     }
   },
   "@configuration": {
-     "rdfFolder": "rdf-files/",
+     "rdfFolder": "C:\\Users\\ivan_\\Documents\\ssp-bos\\rdf-files\\",
      "csvSeparator": "TAB",
      "csvEncode": "UTF-8",
      "ontologyFile": "ontology.owl",
      "csvFilesFolder": "data",
-     "prefix": "http://example.com/",
+     "prefix": "http://www.ssp.sp.gov.br/transparenciassp/",
      "ontologyFormat": "N3",
      "singleRdfOutputFile": false,   
      "resourcesPerFile": 10,
