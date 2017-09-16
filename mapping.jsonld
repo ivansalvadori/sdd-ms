@@ -50,7 +50,7 @@
      "csvFilesFolder": "data",
      "prefix": "http://example.com/",
      "ontologyFormat": "N3",
-     "singleRdfOutputFile": true,   
+     "singleRdfOutputFile": false,   
      "resourcesPerFile": 10,
      "enableInference": true   
    }

@@ -1,17 +1,22 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.PostConstruct;
 
@@ -19,75 +24,93 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
-import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.InfModel;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.tdb.TDBFactory;
+import org.apache.jena.riot.RDFDataMgr;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
 
-public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
+public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListener {
 
-    private String tdbDirectory = "tdb";
+    private InfModel currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 
-    private int modelIndex = 0;
-
-    private InfModel inmemoryTempModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+    private Set<String> modelIDs = new HashSet<>();
 
     private String ontologyFile;
     private boolean enableInference;
+    private String resourcePrefix = "";
+    private String rdfFolder = "";
     private String ontologyFormat = Lang.N3.getName();
+    private String rdfFormat = Lang.NTRIPLES.getName();
 
     private int writerBatchController = 0;
     protected int resourcesPerFile = 0;
+    private String currentFileId = UUID.randomUUID().toString();
+
+    private long totalNumberOfTriples = 0;
 
     @PostConstruct
     public void init() {
-        System.out.println("TDB multiple models databse");
-
         JsonObject mappingConfing = createConfigMapping();
         this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
+        this.resourcePrefix = mappingConfing.get("prefix").getAsString();
         this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
         this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
+        this.rdfFolder = mappingConfing.get("rdfFolder").getAsString();
         this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
+
+        System.out.println("RDF multiple files database with MapDB index");
+        indexResources();
     }
 
     @Override
     public void store(Model model) {
-        if (writerBatchController == resourcesPerFile) {
-            System.out.println("Created model " + modelIndex);
-            this.persist(this.inmemoryTempModel);
-            this.inmemoryTempModel.removeAll();
-            writerBatchController = 0;
-            this.modelIndex++;
+        if (this.resourcesPerFile == writerBatchController) {
+            this.currentFileId = UUID.randomUUID().toString();
+            writeToFile(this.currentModel, currentFileId);
+            this.currentModel.removeAll();
+            this.writerBatchController = 0;
         }
 
-        this.inmemoryTempModel.add(model);
-        writerBatchController++;
+        this.currentModel.add(model);
+        this.writerBatchController++;
     }
 
-    public void persist(Model model) {
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
-        dataset.begin(ReadWrite.WRITE);
-        Model namedModel = dataset.getNamedModel(String.valueOf(this.modelIndex));
-        namedModel.add(model);
-        dataset.commit();
-        dataset.close();
+    private void writeToFile(Model model, String fileId) {
+        String fileName = this.rdfFolder + "/output_" + fileId + ".ntriples";
+        write(model, fileName);
+    }
+
+    private void write(Model model, String fileName) {
+        File directory = new File(this.rdfFolder);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+
+        try (FileWriter fostream = new FileWriter(fileName, true);) {
+            BufferedWriter out = new BufferedWriter(fostream);
+            model.write(out, this.rdfFormat);
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -121,58 +144,48 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
     public Model load(String resourceUri) {
         OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
-        dataset.begin(ReadWrite.READ);
+        DB db = DBMaker.fileDB("index.db").readOnly().make();
+        ConcurrentMap<String, Set<String>> map = (ConcurrentMap<String, Set<String>>) db.hashMap("map").createOrOpen();
 
-        List<Model> models = gettAllModels(dataset);
-        for (Model model : models) {
+        Set<String> modelIds = map.get(resourceUri);
+        if (modelIds == null) {
+            return resourceModel;
+        }
+        for (String modelId : modelIds) {
+            InfModel model = this.readModelFromFile(String.valueOf(modelId));
             Resource resource = model.getResource(resourceUri);
             StmtIterator properties = resource.listProperties();
             while (properties.hasNext()) {
                 resourceModel.add(properties.next());
             }
         }
-
-        dataset.close();
+        db.close();
         return resourceModel;
-    }
-
-    private List<Model> gettAllModels(Dataset dataset) {
-        List<Model> models = new ArrayList<>();
-        dataset = TDBFactory.createDataset(tdbDirectory);
-        dataset.begin(ReadWrite.READ);
-        Iterator<String> listNames = dataset.listNames();
-        while (listNames.hasNext()) {
-            String modelName = listNames.next();
-            Model namedModel = dataset.getNamedModel(modelName);
-            models.add(namedModel);
-        }
-
-        return models;
     }
 
     @Override
     public Model queryTDB(String rdfType, Map<String, String> propertiesAndvalues) {
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
-
         InfModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
         Resource resourceListType = resourceModel.createResource("https://www.w3.org/ns/hydra/core#" + "Collection");
         Resource resourceList = resourceModel.createResource("http://sddms.com.br/ontology/" + "ResourceList", resourceListType);
 
-        int requestedModel = 0;
+        List<String> listModelIds = new ArrayList<>(this.modelIDs);
+
+        if (listModelIds.isEmpty()) {
+            return resourceModel;
+        }
+        String requestedModelId = listModelIds.get(0);
 
         if (propertiesAndvalues.get("sddms:pageId") != null) {
-            requestedModel = Integer.parseInt(propertiesAndvalues.get("sddms:pageId"));
+            requestedModelId = propertiesAndvalues.get("sddms:pageId");
             propertiesAndvalues.remove("sddms:pageId");
         }
 
-        dataset.begin(ReadWrite.READ);
-        Model namedModel = dataset.getNamedModel(String.valueOf(requestedModel));
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        InfModel infModel = this.readModelFromFile(requestedModelId);
+
         if (this.enableInference) {
-            infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+            infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.readModelFromFile(requestedModelId));
         }
-        infModel.add(namedModel);
         infModel.add(createOntologyModel());
 
         StringBuilder queryStr = new StringBuilder();
@@ -192,7 +205,14 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
             queryStr.append(sparqlFragment);
         }
 
-        queryStr.append("} ");
+        String sparqlFragmentOrderByClause = "?resource <%s> ?orderbyProp .  \n";
+        sparqlFragmentOrderByClause = String.format(sparqlFragmentOrderByClause, "http://www.public-security-ontology/dataOcorrencias");
+
+        // queryStr.append(sparqlFragmentOrderByClause);
+
+        queryStr.append("} \n");
+
+        // queryStr.append("ORDER BY DESC(?orderbyProp) ");
 
         Query query = QueryFactory.create(queryStr.toString());
         QueryExecution qexec = QueryExecutionFactory.create(query, infModel);
@@ -204,17 +224,17 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
 
         }
+        int indexOfRequestedModelId = listModelIds.indexOf(requestedModelId);
 
-        if (requestedModel < this.gettAllModels(dataset).size() - 1) {
-            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + (requestedModel + 1));
+        if (indexOfRequestedModelId < listModelIds.size() - 1) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId + 1));
         }
 
-        if (requestedModel > 0) {
-            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + (requestedModel - 1));
+        if (indexOfRequestedModelId > 0) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId - 1));
         }
 
         qexec.close();
-        dataset.close();
         return resourceModel;
     }
 
@@ -223,7 +243,6 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
         try {
             ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -232,9 +251,57 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
         return infModel;
     }
 
+    private InfModel readModelFromFile(String modelId) {
+        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        RDFDataMgr.read(infModel, rdfFolder + modelId, Lang.NTRIPLES);
+        return infModel;
+    }
+
+    private void indexResources() {
+
+        File directory = new File(this.rdfFolder);
+        if (!directory.exists()) {
+            System.out.println("RDF folder not found");
+            return;
+        }
+        Collection<File> files = FileUtils.listFiles(new File(this.rdfFolder), null, true);
+        for (File file : files) {
+
+            DB db = DBMaker.fileDB("index.db").make();
+            ConcurrentMap<String, Set<String>> map = (ConcurrentMap<String, Set<String>>) db.hashMap("map").createOrOpen();
+
+            String modelId = file.getName();
+            this.modelIDs.add(modelId);
+            System.out.println("indexing model " + modelId);
+            InfModel model = this.readModelFromFile(modelId);
+
+            StmtIterator statemants = model.listStatements();
+            while (statemants.hasNext()) {
+                statemants.next();
+                this.totalNumberOfTriples++;
+            }
+
+            ResIterator listSubjects = model.listSubjects();
+            while (listSubjects.hasNext()) {
+                String uri = listSubjects.next().getURI();
+                if (!uri.startsWith(resourcePrefix)) {
+                    continue;
+                }
+                Set<String> models = map.get(uri);
+                if (models == null) {
+                    models = new HashSet<>();
+                }
+                models.add(modelId);
+                map.put(uri, models);
+            }
+            db.close();
+        }
+        System.out.println("Index created");
+        System.out.println("Tiples: " + this.totalNumberOfTriples);
+    }
+
     @Override
     public void commit() {
-        this.persist(inmemoryTempModel);
     }
 
     @Override
@@ -242,17 +309,8 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
         this.store(model);
     }
 
-    @Override
-    public void readProcessFinished() {
-        this.persist(inmemoryTempModel);
-    }
-
-    public void setOntologyFile(String ontologyFile) {
-        this.ontologyFile = ontologyFile;
-    }
-
-    public void setDirectory(String directory) {
-        this.tdbDirectory = directory;
+    public void setResourcePrefix(String resourcePrefix) {
+        this.resourcePrefix = resourcePrefix;
     }
 
     private JsonObject createConfigMapping() {
@@ -264,4 +322,15 @@ public class TDBMultipleModelsDataBase implements DataBase, CsvReaderListener {
             throw new RuntimeException("Mapping file not found");
         }
     }
+
+    @Override
+    public void readProcessFinished() {
+        this.writeToFile(currentModel, this.currentFileId);
+        this.indexResources();
+    }
+
+    public void setResourcesPerFile(int resourcesPerFile) {
+        this.resourcesPerFile = resourcesPerFile;
+    }
+
 }

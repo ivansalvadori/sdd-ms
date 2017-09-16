@@ -24,6 +24,8 @@ public class DataBaseConfig {
             return new InMemoryMultipleModels();
         } else if (persistenceType.equalsIgnoreCase("RdfFiles")) {
             return new RdfMultipleModelsDataBase();
+        } else if (persistenceType.equalsIgnoreCase("RdfFilesMultipleModelsMapDB")) {
+            return new RdfMultipleModelsMapDbDataBase();
         } else {
             return new TDBMultipleModelsDataBase();
         }

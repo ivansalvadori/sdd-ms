@@ -323,7 +323,7 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
 
     @Override
     public void readProcessFinished() {
-        this.store(currentModel);
+        this.writeToFile(currentModel, this.currentFileId);
         this.indexResources();
     }
 
