@@ -17,7 +17,7 @@ api:veiculoFurtado owl:inverseOf api:possuiBoletimOcorrencia .
 
 api:BoletimOcorrenciaFurtoVeiculo a owl:Class .
 api:VeiculoFurtado a owl:Class .
-api:LocalDaOcorrencia a owl:Class .
+api:LocalOcorrencia a owl:Class .
 api:GeoLocalizacao a owl:Class .
 
 api:BO a owl:Class .

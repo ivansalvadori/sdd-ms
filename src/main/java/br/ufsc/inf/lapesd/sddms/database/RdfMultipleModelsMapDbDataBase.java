@@ -21,6 +21,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -38,6 +39,7 @@ import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RiotNotFoundException;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -67,6 +69,8 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
     private String currentFileId = UUID.randomUUID().toString();
 
     private long totalNumberOfTriples = 0;
+
+    private final int maxNumberOfModelsAssociatedWithUri = 10;
 
     @PostConstruct
     public void init() {
@@ -148,13 +152,13 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         DB db = DBMaker.fileDB("index.db").fileMmapEnable().readOnly().make();
         Iterable<String> allNames = db.getAllNames();
         for (String mapName : allNames) {
-            HTreeMap<String, String> map = db.hashMap(mapName).keySerializer(Serializer.STRING).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).open();
+            HTreeMap<String, String> map = db.hashMap(mapName).keySerializer(new SerializerCompressionWrapper(Serializer.STRING)).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).open();
             String modelId = map.get(resourceUri);
             if (modelId == null) {
                 continue;
             }
             if (modelId.contains("+")) {
-                String[] split = modelId.split("+");
+                String[] split = StringUtils.split(modelId, "+");
                 for (String id : split) {
                     modelIDsThatContainResourceUri.add(id);
                 }
@@ -162,7 +166,6 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
                 modelIDsThatContainResourceUri.add(modelId);
             }
         }
-        System.out.println(modelIDsThatContainResourceUri);
 
         db.close();
 
@@ -268,7 +271,11 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     private InfModel readModelFromFile(String modelId) {
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-        RDFDataMgr.read(infModel, rdfFolder + modelId, Lang.NTRIPLES);
+        try {
+            RDFDataMgr.read(infModel, rdfFolder + modelId, Lang.NTRIPLES);
+        } catch (RiotNotFoundException e) {
+            return infModel;
+        }
         return infModel;
     }
 
@@ -294,7 +301,7 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         long totalNumberOfMapEntries = 0;
 
         DB db = DBMaker.fileDB("index.db").fileMmapEnable().make();
-        HTreeMap<String, String> map = db.hashMap("map_" + UUID.randomUUID()).keySerializer(Serializer.STRING).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).create();
+        HTreeMap<String, String> map = db.hashMap("map_" + UUID.randomUUID()).keySerializer(new SerializerCompressionWrapper(Serializer.STRING)).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).create();
 
         for (File file : files) {
             String modelId = file.getName();
@@ -315,14 +322,20 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
                 if (!uri.startsWith(resourcePrefix)) {
                     continue;
                 }
-                String existingUri = map.get(uri);
-                if (existingUri != null) {
-                    modelId = existingUri + "+" + uri;
+                modelId = file.getName();
+                String existingModelId = map.get(uri);
+                if (existingModelId != null) {
+                    if (!existingModelId.contains(modelId)) {
+                        int modelsAssciactedWithThisUri = StringUtils.split(existingModelId, "+").length;
+                        if (modelsAssciactedWithThisUri < maxNumberOfModelsAssociatedWithUri) {
+                            modelId = existingModelId + "+" + modelId;
+                        }
+                    }
                 }
 
-                if (totalNumberOfMapEntries >= 100000) {
+                if (totalNumberOfMapEntries >= 500000) {
                     System.out.println("creating a new index map");
-                    map = db.hashMap("map_" + UUID.randomUUID()).keySerializer(Serializer.STRING).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).create();
+                    map = db.hashMap("map_" + UUID.randomUUID()).keySerializer(new SerializerCompressionWrapper(Serializer.STRING)).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).create();
                     totalNumberOfMapEntries = 0;
                 }
                 map.put(uri, modelId);
