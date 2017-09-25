@@ -1,51 +1,68 @@
-@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl:  <http://www.w3.org/2002/07/owl#> .
-@prefix api:  <http://www.public-security-ontology/> .
- 
-api:numeroOcorrencia a owl:DatatypeProperty .
-api:periodoOcorrencia a owl:DatatypeProperty .
-api:tipoVeiculo a owl:DatatypeProperty .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 
-api:possuiBoletimOcorrencia a owl:ObjectProperty .
+<http://www.public-security-ontology/CaminhaoFurtado>
+        a                    owl:Class ;
+        owl:equivalentClass  [ a                   owl:Class ;
+                               owl:intersectionOf  ( <http://www.public-security-ontology/VeiculoFurtado>
+                                                     [ a               owl:Restriction ;
+                                                       owl:hasValue    "CAMINHÃO" ;
+                                                       owl:onProperty  <http://www.public-security-ontology/tipoVeiculo>
+                                                     ]
+                                                   )
+                             ] .
 
-api:localDaOcorrencia a owl:ObjectProperty .
-api:localDaOcorrencia owl:inverseOf api:possuiBoletimOcorrencia .
+<http://www.public-security-ontology/localDaOcorrencia>
+        a              owl:ObjectProperty ;
+        owl:inverseOf  <http://www.public-security-ontology/possuiBoletimOcorrencia> .
 
-api:veiculoFurtado a owl:ObjectProperty .
-api:veiculoFurtado owl:inverseOf api:possuiBoletimOcorrencia .
+<http://www.public-security-ontology/numeroOcorrencia>
+        a       owl:DatatypeProperty .
 
-api:BoletimOcorrenciaFurtoVeiculo a owl:Class .
-api:VeiculoFurtado a owl:Class .
-api:LocalOcorrencia a owl:Class .
-api:GeoLocalizacao a owl:Class .
+<http://www.public-security-ontology/veiculoFurtado>
+        a              owl:ObjectProperty ;
+        owl:inverseOf  <http://www.public-security-ontology/possuiBoletimOcorrencia> .
 
-api:BO a owl:Class .
-api:BO owl:equivalentClass api:BoletimOcorrenciaFurtoVeiculo .
+<http://www.public-security-ontology/BOnoturno>
+        a                    owl:Class ;
+        owl:equivalentClass  [ a                   owl:Class ;
+                               owl:intersectionOf  ( <http://www.public-security-ontology/BO>
+                                                     [ a               owl:Restriction ;
+                                                       owl:hasValue    "A NOITE" ;
+                                                       owl:onProperty  <http://www.public-security-ontology/periodoOcorrencia>
+                                                     ]
+                                                   )
+                             ] .
 
-api:BOnoturno
-  a owl:Class ;
-  owl:equivalentClass
-  [ a owl:Class ;
-    owl:intersectionOf 
-      ( api:BO 
-        [ a owl:Restriction ;
-	      owl:onProperty api:periodoOcorrencia ;
-	      owl:hasValue "A NOITE"
-	    ]
-	   
-	  )	   
-  ] .
-  
-  api:CaminhaoFurtado
-  a owl:Class ;
-  owl:equivalentClass
-  [ a owl:Class ;
-    owl:intersectionOf 
-      ( api:VeiculoFurtado 
-        [ a owl:Restriction ;
-	      owl:onProperty api:tipoVeiculo ;
-	      owl:hasValue "CAMINHÃO"
-	    ]	   
-	  )	   
-  ] .
+<http://www.public-security-ontology/LocalOcorrencia>
+        a       owl:Class .
+
+<http://www.public-security-ontology/BO>
+        a                    owl:Class ;
+        owl:equivalentClass  <http://www.public-security-ontology/BoletimOcorrenciaFurtoVeiculo> .
+
+<http://www.public-security-ontology/BoletimOcorrenciaFurtoCarro>
+        a       owl:Class .
+
+<http://www.public-security-ontology/flagrante>
+        a       owl:DatatypeProperty .
+
+<http://www.public-security-ontology/GeoLocalizacao>
+        a       owl:Class .
+
+<http://www.public-security-ontology/tipoVeiculo>
+        a       owl:DatatypeProperty .
+
+<http://www.public-security-ontology/possuiBoletimOcorrencia>
+        a       owl:ObjectProperty .
+
+<http://www.public-security-ontology/VeiculoFurtado>
+        a       owl:Class .
+
+<http://www.public-security-ontology/periodoOcorrencia>
+        a       owl:DatatypeProperty .
+
+<http://www.public-security-ontology/BoletimOcorrenciaFurtoVeiculo>
+        a       owl:Class .

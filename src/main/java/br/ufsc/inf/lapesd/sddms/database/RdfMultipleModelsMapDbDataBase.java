@@ -199,6 +199,28 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
             propertiesAndvalues.remove("sddms:pageId");
         }
 
+        ResultSet results = this.executeSparql(requestedModelId, rdfType, propertiesAndvalues);
+
+        while (results.hasNext()) {
+            String uri = results.next().getResource("resource").getURI();
+            Resource resource = ResourceFactory.createResource(uri);
+            resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
+        }
+
+        int indexOfRequestedModelId = listModelIds.indexOf(requestedModelId);
+
+        if (indexOfRequestedModelId < listModelIds.size() - 1) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId + 1));
+        }
+
+        if (indexOfRequestedModelId > 0) {
+            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId - 1));
+        }
+
+        return resourceModel;
+    }
+
+    private ResultSet executeSparql(String requestedModelId, String rdfType, Map<String, String> propertiesAndvalues) {
         InfModel infModel = this.readModelFromFile(requestedModelId);
 
         if (this.enableInference) {
@@ -214,10 +236,8 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         queryStr.append("?resource a <" + rdfType + "> . \n");
 
         Set<String> properties = propertiesAndvalues.keySet();
-        int indexProperty = 0;
 
         for (String prop : properties) {
-            indexProperty = indexProperty + 1;
             String sparqlFragment = "?resource <%s> \"%s\" .  \n";
             sparqlFragment = String.format(sparqlFragment, prop, propertiesAndvalues.get(prop));
             queryStr.append(sparqlFragment);
@@ -226,34 +246,12 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         String sparqlFragmentOrderByClause = "?resource <%s> ?orderbyProp .  \n";
         sparqlFragmentOrderByClause = String.format(sparqlFragmentOrderByClause, "http://www.public-security-ontology/dataOcorrencias");
 
-        // queryStr.append(sparqlFragmentOrderByClause);
-
         queryStr.append("} \n");
-
-        // queryStr.append("ORDER BY DESC(?orderbyProp) ");
 
         Query query = QueryFactory.create(queryStr.toString());
         QueryExecution qexec = QueryExecutionFactory.create(query, infModel);
         ResultSet results = qexec.execSelect();
-
-        while (results.hasNext()) {
-            String uri = results.next().getResource("resource").getURI();
-            Resource resource = ResourceFactory.createResource(uri);
-            resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
-
-        }
-        int indexOfRequestedModelId = listModelIds.indexOf(requestedModelId);
-
-        if (indexOfRequestedModelId < listModelIds.size() - 1) {
-            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId + 1));
-        }
-
-        if (indexOfRequestedModelId > 0) {
-            resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "previous"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId - 1));
-        }
-
-        qexec.close();
-        return resourceModel;
+        return results;
     }
 
     private Model createOntologyModel() {
