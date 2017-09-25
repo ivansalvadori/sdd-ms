@@ -38,11 +38,10 @@ var getApiDoc = function() {
 
 				}
 			});
-
 };
 
 addListenerSupportedClassClicked = function() {
-	loadingIcon = " <img class='loadingIcon' src='loading.gif' width=20/> ";
+	loadingIcon = " <img class='/sddms/loadingIcon' src='loading.gif' width=20/> ";
 	$(".supportedClassItem").click(function() {
 		$(this).append(loadingIcon);
 		url = $(this).attr("seealso");
@@ -230,13 +229,13 @@ loadOntologyProperties = function(propertyName) {
 }
 
 addListenerLinkDoSearch = function() {
-	loadingIcon = " <img class='loadingIcon' src='loading.gif' width=20/ style='border-style: none;'> ";
+	loadingIcon = " <img class='loadingIcon' src='/sddms/loading.gif' width=20/ style='border-style: none;'> ";
 
 	$("#linkDoSearch").click(function() {
 		$(this).append(loadingIcon);
 
 		selectedClass = $("#selectSearchClass").val();
-		url = "resources?uriClass=" + selectedClass;
+		url = "/sddms/resources?uriClass=" + selectedClass;
 
 		$(".ontologyPropertyId").each(function(index, element){
 			associatedInputId = $(this).attr("for");
@@ -253,7 +252,7 @@ addListenerLinkDoSearch = function() {
 }
 
 addListenerLinkPaginationPage = function() {
-	loadingIcon = " <img class='loadingIcon' src='loading.gif' width=20/ style='border-style: none;'> ";
+	loadingIcon = " <img class='loadingIcon' src='/sddms/loading.gif' width=20/ style='border-style: none;'> ";
 
 	$("#linkNextPage").off('click');
 	$("#linkNextPage").click(function() {
