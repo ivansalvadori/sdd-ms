@@ -22,7 +22,7 @@ var loadOntology = function() {
 
 var saveOntology = function() {
   $.ajax({
-    url: "http://localhost:8081/sddms/ontology",
+    url: "/sddms/ontology",
     type: 'POST',
 	contentType: "text/turtle",
 	data: $("#ontologyTextArea").val(),

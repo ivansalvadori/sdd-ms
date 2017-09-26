@@ -1,6 +1,5 @@
 package br.ufsc.inf.lapesd.sddms;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -47,10 +46,8 @@ public class OntologyManager {
         String ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
 
         try (FileWriter fostream = new FileWriter(ontologyFile, false);) {
-            BufferedWriter out = new BufferedWriter(fostream);
-            model.write(out, ontologyFormat);
-            out.close();
-        } catch (IOException e) {
+            model.write(fostream, ontologyFormat);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
