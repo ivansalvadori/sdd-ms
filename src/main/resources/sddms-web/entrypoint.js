@@ -259,7 +259,6 @@ addListenerLinkDoSearch = function() {
 					}					
 				});
 				
-				debugger;
 				url = url + "&"+propertyLable+ "=" + propertyValue
 			}
 		});
