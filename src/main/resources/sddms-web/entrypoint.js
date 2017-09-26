@@ -1,5 +1,7 @@
 var innerResourceCount = 0;
 
+
+
 var getApiDoc = function() {
 	$
 			.ajax({
@@ -201,6 +203,7 @@ loadOntologyProperties = function(propertyName) {
 				},
 				success : function(ontology) {
 					nodos = ontology["@graph"];
+					$ontology = ontology;
 					propCount = 0;
 					$
 							.each(
@@ -247,7 +250,17 @@ addListenerLinkDoSearch = function() {
 			associatedInputId = $(this).attr("for");
 			propertyValue = $("#" + associatedInputId).val();
 			if(propertyValue != ""){
-				url = url + "&"+$(element).html()+ "=" + propertyValue
+				propertyLable = $(element).html();
+				
+				contextPrefixes = Object.keys($ontology["@context"]);
+				$.each(contextPrefixes, function(key, prefix){
+					if(propertyLable.startsWith(prefix)){
+						propertyLable = propertyLable.replace(prefix+":", $ontology["@context"][prefix])
+					}					
+				});
+				
+				debugger;
+				url = url + "&"+propertyLable+ "=" + propertyValue
 			}
 		});
 		
@@ -276,6 +289,7 @@ addListenerLinkPaginationPage = function() {
 }
 
 $(document).ready(function() {
+	var $ontology = "";
 	getApiDoc();
 
 });
