@@ -136,69 +136,65 @@ addResourceToList = function(itemsDiv, item, itemCount) {
 }
 
 loadResource = function(url, divtorender) {
-	$
-			.ajax({
-				url : url,
-				type : 'GET',
-				async : true,
-				contentType : 'application/json',
-				beforeSend : function(req) {
-					req.setRequestHeader("Accept", "application/ld+json");
-				},
-				success : function(resource) {
-					resourceContent = "";
-					$
-							.each(
-									resource,
-									function(key, element) {
-										if (key != "@context") {
-											contextOfKey = resource["@context"][key];
-											if (resource["@context"][key]
-													&& contextOfKey["@type"]
-													&& contextOfKey["@type"] == "@id") {
-												associatedUrls = element
-														.split(",");
-												$
-														.each(
-																associatedUrls,
-																function(index,
-																		urlToVisit) {
-																	resourceContent = resourceContent
-																			+ "<b>"
-																			+ key
-																			+ ":</b> <a href='#innerResource_"
-																			+ innerResourceCount
-																			+ "' class='resourceLink' style='text-decoration: none' resourceuri='"
-																			+ urlToVisit
-																			+ "' divtorender='innerResource_"
-																			+ innerResourceCount
-																			+ "'>click to open</a> <br>";
-																	resourceContent = resourceContent
-																			+ "<div class='well well-sm hidden' id='innerResource_"
-																			+ innerResourceCount
-																			+ "'></div>";
-																	innerResourceCount++;
-																});
+	$.ajax({
+		url : url,
+		type : 'GET',
+		async : true,
+		contentType : 'application/json',
+		beforeSend : function(req) {
+			req.setRequestHeader("Accept", "application/ld+json");
+		},
+		success : function(resource) {
+			resourceContent = "";
+			$.each(resource, function(key, element) {
+				if (key != "@context") {
+					contextOfKey = resource["@context"][key];
+					if (resource["@context"][key] && contextOfKey["@type"]
+							&& contextOfKey["@type"] == "@id") {
 
-											} else {
-												resourceContent = resourceContent
-														+ "<b>"
-														+ key
-														+ ":</b> "
-														+ element
-														+ "<br>";
-											}
-										}
-									});
-					$("#" + divtorender).html(resourceContent)
-					addListenerResourceLinkClicked();
-					$("#" + divtorender).removeClass("hidden")
-					$(".loadingIcon").remove();
-				},
-				error : function() {
+						if (!Array.isArray(element)) {
+							resourceContent = resourceContent
+									+ createLink(key, element)
+						} else {
+							$.each(element, function(index, element){
+								resourceContent = resourceContent
+								+ createLink(key, element);
+							});
+						}
 
+					} else {
+						resourceContent = resourceContent + "<b>" + key
+								+ ":</b> " + element + "<br>";
+					}
 				}
 			});
+			$("#" + divtorender).html(resourceContent)
+			addListenerResourceLinkClicked();
+			$("#" + divtorender).removeClass("hidden")
+			$(".loadingIcon").remove();
+		},
+		error : function() {
+
+		}
+
+	});
+
+	createLink = function(key, element) {
+		resourceContent = "<b>"
+				+ key
+				+ ":</b> <a href='#innerResource_"
+				+ innerResourceCount
+				+ "' class='resourceLink' style='text-decoration: none' resourceuri='"
+				+ element + "' divtorender='innerResource_"
+				+ innerResourceCount + "'>click to open</a> <br>";
+		resourceContent = resourceContent
+				+ "<div class='well well-sm hidden' id='innerResource_"
+				+ innerResourceCount + "'></div>";
+		innerResourceCount++;
+
+		return resourceContent;
+	}
+
 }
 
 loadOntologyProperties = function(propertyName) {
