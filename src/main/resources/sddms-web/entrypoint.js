@@ -41,7 +41,7 @@ var getApiDoc = function() {
 };
 
 addListenerSupportedClassClicked = function() {
-	loadingIcon = " <img class='/sddms/loadingIcon' src='loading.gif' width=20/> ";
+	loadingIcon = " <img class='loadingIcon' src='/sddms/loading.gif' width=20/> ";
 	$(".supportedClassItem").click(function() {
 		$(this).append(loadingIcon);
 		url = $(this).attr("seealso");
@@ -50,7 +50,7 @@ addListenerSupportedClassClicked = function() {
 }
 
 addListenerResourceLinkClicked = function() {
-	loadingIcon = " <img class='loadingIcon' src='loading.gif' width=20/> ";
+	loadingIcon = " <img class='loadingIcon' src='/sddms/loading.gif' width=20/> ";
 
 	$(".resourceLink").off('click');
 	$(".resourceLink").click(function() {
