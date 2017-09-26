@@ -1,5 +1,7 @@
 package br.ufsc.inf.lapesd.sddms.endpoint;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -25,11 +27,13 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.util.ResourceUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import br.ufsc.inf.lapesd.sddms.DataManager;
+import br.ufsc.inf.lapesd.sddms.OntologyManager;
 
 @Path("/")
 @Component
@@ -71,7 +75,7 @@ public class ResourcesEndpoint {
 
     @GET
     @Path("/resources")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
     public Response queryResources(@QueryParam("uriClass") String uriClass, @QueryParam("sddms:pageId") String pageId) {
         Map<String, String> propertyValues = new HashMap<>();
         MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
@@ -93,6 +97,11 @@ public class ResourcesEndpoint {
 
         String resourceStringReplacedHydraNextIfExists = resourceStringReplaced.replaceAll("sddms:pageId", requestedUriPagination + "&sddms:pageId");
 
+        Model resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        InputStream resourceStream = new ByteArrayInputStream(resourceStringReplacedHydraNextIfExists.getBytes());
+
+        RDFDataMgr.read(resourceModel, resourceStream, Lang.JSONLD);
+
         return Response.ok(resourceStringReplacedHydraNextIfExists).build();
     }
 
@@ -111,9 +120,12 @@ public class ResourcesEndpoint {
         return uriBuilder.toString();
     }
 
+    @Autowired
+    private OntologyManager ontologyManager;
+
     @GET
     @Path("/resource")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
     public Response listAllResources(@QueryParam("uri") String uri) {
         Model resource = dataManager.getResource(this.dataManager.getResourcePrefix() + uri);
         Resource renamedResource = ResourceUtils.renameResource(resource.getResource(uri), uriInfo.getRequestUri().toString());
@@ -122,6 +134,11 @@ public class ResourcesEndpoint {
         String resourceString = out.toString();
         String resourceStringReplaced = resourceString.replaceAll(this.dataManager.getResourcePrefix(), uriInfo.getAbsolutePath() + "?uri=");
 
-        return Response.ok(resourceStringReplaced).build();
+        Model resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        InputStream resourceStream = new ByteArrayInputStream(resourceStringReplaced.getBytes());
+
+        RDFDataMgr.read(resourceModel, resourceStream, Lang.JSONLD);
+
+        return Response.ok(resourceModel).build();
     }
 }

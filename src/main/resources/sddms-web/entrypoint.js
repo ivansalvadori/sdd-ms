@@ -68,6 +68,9 @@ loadList = function(url) {
 		type : 'GET',
 		async : true,
 		contentType : 'application/json',
+		beforeSend : function(req) {
+			req.setRequestHeader("Accept", "application/ld+json");
+		},
 		success : function(list) {
 			$(".loadingIcon").remove();
 			if (list["next"]) {
@@ -137,6 +140,9 @@ loadResource = function(url, divtorender) {
 				type : 'GET',
 				async : true,
 				contentType : 'application/json',
+				beforeSend : function(req) {
+					req.setRequestHeader("Accept", "application/ld+json");
+				},
 				success : function(resource) {
 					resourceContent = "";
 					$
