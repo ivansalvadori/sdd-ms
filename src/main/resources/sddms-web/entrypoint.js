@@ -1,7 +1,5 @@
 var innerResourceCount = 0;
 
-
-
 var getApiDoc = function() {
 	$
 			.ajax({
@@ -121,6 +119,8 @@ loadList = function(url) {
 }
 
 addResourceToList = function(itemsDiv, item, itemCount) {
+	;
+
 	itemLabel = item.substring(item.length - 40, item.length)
 	itemPanel = '<div class="panel-heading" role="tab" >'
 			+ '<h4 class="panel-title">'
@@ -156,21 +156,30 @@ loadResource = function(url, divtorender) {
 											if (resource["@context"][key]
 													&& contextOfKey["@type"]
 													&& contextOfKey["@type"] == "@id") {
-												resourceContent = resourceContent
-														+ "<b>"
-														+ key
-														+ ":</b> <a href='#innerResource_"
-														+ innerResourceCount
-														+ "' class='resourceLink' style='text-decoration: none' resourceuri='"
-														+ element
-														+ "' divtorender='innerResource_"
-														+ innerResourceCount
-														+ "'>click to open</a> <br>";
-												resourceContent = resourceContent
-														+ "<div class='well well-sm hidden' id='innerResource_"
-														+ innerResourceCount
-														+ "'></div>";
-												innerResourceCount++;
+												associatedUrls = element
+														.split(",");
+												$
+														.each(
+																associatedUrls,
+																function(index,
+																		urlToVisit) {
+																	resourceContent = resourceContent
+																			+ "<b>"
+																			+ key
+																			+ ":</b> <a href='#innerResource_"
+																			+ innerResourceCount
+																			+ "' class='resourceLink' style='text-decoration: none' resourceuri='"
+																			+ urlToVisit
+																			+ "' divtorender='innerResource_"
+																			+ innerResourceCount
+																			+ "'>click to open</a> <br>";
+																	resourceContent = resourceContent
+																			+ "<div class='well well-sm hidden' id='innerResource_"
+																			+ innerResourceCount
+																			+ "'></div>";
+																	innerResourceCount++;
+																});
+
 											} else {
 												resourceContent = resourceContent
 														+ "<b>"
@@ -240,33 +249,39 @@ loadOntologyProperties = function(propertyName) {
 addListenerLinkDoSearch = function() {
 	loadingIcon = " <img class='loadingIcon' src='/sddms/loading.gif' width=20/ style='border-style: none;'> ";
 
-	$("#linkDoSearch").click(function() {
-		$(this).append(loadingIcon);
+	$("#linkDoSearch").click(
+			function() {
+				$(this).append(loadingIcon);
 
-		selectedClass = $("#selectSearchClass").val();
-		url = "/sddms/resources?uriClass=" + selectedClass;
+				selectedClass = $("#selectSearchClass").val();
+				url = "/sddms/resources?uriClass=" + selectedClass;
 
-		$(".ontologyPropertyId").each(function(index, element){
-			associatedInputId = $(this).attr("for");
-			propertyValue = $("#" + associatedInputId).val();
-			if(propertyValue != ""){
-				propertyLable = $(element).html();
-				
-				contextPrefixes = Object.keys($ontology["@context"]);
-				$.each(contextPrefixes, function(key, prefix){
-					if(propertyLable.startsWith(prefix)){
-						propertyLable = propertyLable.replace(prefix+":", $ontology["@context"][prefix])
-					}					
-				});
-				
-				url = url + "&"+propertyLable+ "=" + propertyValue
-			}
-		});
-		
-		console.log(url)
+				$(".ontologyPropertyId").each(
+						function(index, element) {
+							associatedInputId = $(this).attr("for");
+							propertyValue = $("#" + associatedInputId).val();
+							if (propertyValue != "") {
+								propertyLable = $(element).html();
 
-		loadList(url)
-	});
+								contextPrefixes = Object
+										.keys($ontology["@context"]);
+								$.each(contextPrefixes, function(key, prefix) {
+									if (propertyLable.startsWith(prefix)) {
+										propertyLable = propertyLable.replace(
+												prefix + ":",
+												$ontology["@context"][prefix])
+									}
+								});
+
+								url = url + "&" + propertyLable + "="
+										+ propertyValue
+							}
+						});
+
+				console.log(url)
+
+				loadList(url)
+			});
 }
 
 addListenerLinkPaginationPage = function() {
