@@ -72,6 +72,10 @@ addListenerResourceLinkClicked = function() {
 }
 
 loadList = function(url) {
+	$("#mainPanel").empty();
+	$("#mainPanel")
+			.append(
+					"Searching for Web resources.... It may take some time.");
 	$
 			.ajax({
 				url : url,
@@ -85,10 +89,6 @@ loadList = function(url) {
 					if (!list["items"] && list["next"]) {
 						nextPage = list["next"];
 						loadList(nextPage);
-						$("#mainPanel").empty();
-						$("#mainPanel")
-								.append(
-										"Searching for Web resources.... It may take some time.");
 						return;
 					}
 
