@@ -215,6 +215,7 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         }
 
         List<Resource> resources = new ArrayList<>();
+        int indexOfRequestedModelId = listModelIds.indexOf(requestedModelId);
 
         ExtendedIterator<OntClass> eqvClasses = ontClass.listEquivalentClasses();
         while (eqvClasses.hasNext()) {
@@ -222,18 +223,26 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
             if (eqvClass.isRestriction() || eqvClass.isIntersectionClass()) {
                 inference = true;
                 resources.addAll(this.executeSparql(requestedModelId, rdfType, propertiesAndvalues, inference));
+                while (resources.isEmpty() && (indexOfRequestedModelId < listModelIds.size() - 1)) {
+                    indexOfRequestedModelId++;
+                    String nextModelId = listModelIds.get(indexOfRequestedModelId);
+                    resources.addAll(this.executeSparql(nextModelId, rdfType, propertiesAndvalues, inference));
+                }
                 break;
             } else {
                 inference = false;
                 resources.addAll(this.executeSparql(requestedModelId, eqvClass.getURI(), propertiesAndvalues, inference));
+                while (resources.isEmpty() && (indexOfRequestedModelId < listModelIds.size() - 1)) {
+                    indexOfRequestedModelId++;
+                    String nextModelId = listModelIds.get(indexOfRequestedModelId);
+                    resources.addAll(this.executeSparql(nextModelId, rdfType, propertiesAndvalues, inference));
+                }
             }
         }
 
         for (Resource resource : resources) {
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
         }
-
-        int indexOfRequestedModelId = listModelIds.indexOf(requestedModelId);
 
         if (indexOfRequestedModelId < listModelIds.size() - 1) {
             resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + listModelIds.get(indexOfRequestedModelId + 1));
