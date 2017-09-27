@@ -257,7 +257,7 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
 
     private InfModel readModelFromFile(String modelId) {
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-        RDFDataMgr.read(infModel, rdfFolder + modelId, Lang.NTRIPLES);
+        RDFDataMgr.read(infModel, rdfFolder + File.separator + modelId, Lang.NTRIPLES);
         return infModel;
     }
 

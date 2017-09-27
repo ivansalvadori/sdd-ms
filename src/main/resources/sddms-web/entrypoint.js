@@ -72,7 +72,23 @@ loadList = function(url) {
 			req.setRequestHeader("Accept", "application/ld+json");
 		},
 		success : function(list) {
+			if(!list["items"] && list["next"]){
+				nextPage = list["next"];
+				loadList(nextPage);
+				$("#mainPanel").empty();
+				$("#mainPanel").append("Searching for Web resources.... It may take some time.");
+				return;
+			}
+			
+			if(!list["items"] && !list["next"]){
+				$("#mainPanel").empty();
+				$("#mainPanel").append("Web resource not found.");
+				$(".loadingIcon").remove();
+				return;
+			}
+
 			$(".loadingIcon").remove();
+			
 			if (list["next"]) {
 				$("#linkNextPage").removeClass("hidden");
 				$("#linkNextPage").attr("url", list["next"]);
@@ -101,7 +117,7 @@ loadList = function(url) {
 			$("#mainPanel").append(itemsDiv);
 
 			if (!Array.isArray(items)) {
-				addResourceToList(itemsDiv, items, itemCount)
+				addResourceToList(itemsDiv, items, 0)
 			} else {
 				itemCount = 0;
 				$.each(items, function(index, item) {

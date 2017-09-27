@@ -43,7 +43,7 @@
     }
   },
   "@configuration": {
-     "rdfFolder": "C:\\Users\\ivan_\\Documents\\ssp-bos\\rdf-files\\",
+     "rdfFolder": "rdf-files",
      "csvSeparator": "TAB",
      "csvEncode": "UTF-8",
      "ontologyFile": "ontology.owl",

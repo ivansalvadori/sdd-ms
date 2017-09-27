@@ -270,7 +270,7 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
     private InfModel readModelFromFile(String modelId) {
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         try {
-            RDFDataMgr.read(infModel, rdfFolder + modelId, Lang.NTRIPLES);
+            RDFDataMgr.read(infModel, rdfFolder + File.separator + modelId, Lang.NTRIPLES);
         } catch (RiotNotFoundException e) {
             return infModel;
         }
