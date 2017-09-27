@@ -14,6 +14,16 @@ api:CaminhaoFurtado  a       owl:Class ;
                                                    )
                              ] .
 
+api:MotoFurtada  a           owl:Class ;
+        owl:equivalentClass  [ a                   owl:Class ;
+                               owl:intersectionOf  ( api:VeiculoFurtado
+                                                     [ a               owl:Restriction ;
+                                                       owl:hasValue    "MOTOCICLO" ;
+                                                       owl:onProperty  api:tipoVeiculo
+                                                     ]
+                                                   )
+                             ] .
+
 api:localDaOcorrencia
         a              owl:ObjectProperty ;
         owl:inverseOf  api:possuiBoletimOcorrencia .
@@ -40,18 +50,18 @@ api:GeoLocalizacao  a  owl:Class .
 
 api:tipoVeiculo  a  owl:DatatypeProperty .
 
+api:VeiculoFurtado  a  owl:Class .
+
 api:LocalDaOcorrencia
         a       owl:Class .
 
 api:possuiBoletimOcorrencia
         a       owl:ObjectProperty .
 
-api:VeiculoFurtado  a  owl:Class .
-
 api:placa  a    owl:DatatypeProperty .
-
-api:BoletimOcorrenciaFurtoVeiculo
-        a       owl:Class .
 
 api:periodoOcorrencia
         a       owl:DatatypeProperty .
+
+api:BoletimOcorrenciaFurtoVeiculo
+        a       owl:Class .

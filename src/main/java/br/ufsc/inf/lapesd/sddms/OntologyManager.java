@@ -63,4 +63,21 @@ public class OntologyManager {
         }
     }
 
+    public Model createOntologyInfModel() {
+        JsonObject mappingConfing = createConfigMapping();
+        String ontologyFile = mappingConfing.get("ontologyFile").getAsString();
+        String ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
+
+        String ontologyString = null;
+        try {
+            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+        infModel.read(new StringReader(ontologyString), null, ontologyFormat);
+        return infModel;
+    }
+
 }

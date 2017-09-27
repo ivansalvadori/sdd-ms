@@ -22,6 +22,7 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -40,6 +41,7 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RiotNotFoundException;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -199,11 +201,35 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
             propertiesAndvalues.remove("sddms:pageId");
         }
 
-        ResultSet results = this.executeSparql(requestedModelId, rdfType, propertiesAndvalues);
+        boolean inference = false;
 
-        while (results.hasNext()) {
-            String uri = results.next().getResource("resource").getURI();
-            Resource resource = ResourceFactory.createResource(uri);
+        OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, createOntologyModel());
+        OntClass ontClass = model.getOntClass(rdfType);
+
+        ExtendedIterator<OntClass> subClasses = ontClass.listSubClasses();
+        while (subClasses.hasNext()) {
+            OntClass subClass = subClasses.next();
+            if (subClass.isRestriction()) {
+                inference = true;
+            }
+        }
+
+        List<Resource> resources = new ArrayList<>();
+
+        ExtendedIterator<OntClass> eqvClasses = ontClass.listEquivalentClasses();
+        while (eqvClasses.hasNext()) {
+            OntClass eqvClass = eqvClasses.next();
+            if (eqvClass.isRestriction() || eqvClass.isIntersectionClass()) {
+                inference = true;
+                resources.addAll(this.executeSparql(requestedModelId, rdfType, propertiesAndvalues, inference));
+                break;
+            } else {
+                inference = false;
+                resources.addAll(this.executeSparql(requestedModelId, eqvClass.getURI(), propertiesAndvalues, inference));
+            }
+        }
+
+        for (Resource resource : resources) {
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
         }
 
@@ -220,10 +246,11 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         return resourceModel;
     }
 
-    private ResultSet executeSparql(String requestedModelId, String rdfType, Map<String, String> propertiesAndvalues) {
-        InfModel infModel = this.readModelFromFile(requestedModelId);
+    private List<Resource> executeSparql(String requestedModelId, String rdfType, Map<String, String> propertiesAndvalues, boolean inference) {
+        List<Resource> resources = new ArrayList<>();
 
-        if (this.enableInference) {
+        InfModel infModel = this.readModelFromFile(requestedModelId);
+        if (inference) {
             infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.readModelFromFile(requestedModelId));
         }
         infModel.add(createOntologyModel());
@@ -251,7 +278,14 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         Query query = QueryFactory.create(queryStr.toString());
         QueryExecution qexec = QueryExecutionFactory.create(query, infModel);
         ResultSet results = qexec.execSelect();
-        return results;
+
+        while (results.hasNext()) {
+            String uri = results.next().getResource("resource").getURI();
+            Resource resource = ResourceFactory.createResource(uri);
+            resources.add(resource);
+        }
+
+        return resources;
     }
 
     private Model createOntologyModel() {

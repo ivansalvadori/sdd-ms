@@ -20,6 +20,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.jena.ontology.OntClass;
+import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.InfModel;
 import org.apache.jena.rdf.model.Model;
@@ -29,6 +31,7 @@ import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.util.ResourceUtils;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -45,6 +48,9 @@ public class ResourcesEndpoint {
     @Autowired
     private DataManager dataManager;
 
+    @Autowired
+    private OntologyManager ontologyManager;
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response listAllManagedClasses() {
@@ -57,9 +63,15 @@ public class ResourcesEndpoint {
 
         String baseUri = uriInfo.getBaseUri().toString();
 
+        OntModel ontologyInfModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.ontologyManager.createOntologyInfModel());
+
         for (String uri : allManagedSemanticClasses) {
             Resource managedClasse = resourceModel.createResource(uri, hydraClass);
             managedClasse.addProperty(resourceModel.createProperty("http://www.w3.org/2000/01/rdf-schema#seeAlso"), baseUri + "resources?uriClass=" + uri);
+
+            boolean needInference = this.needInference(uri, ontologyInfModel);
+            managedClasse.addProperty(resourceModel.createProperty("http://sddms.com.br/ontology/inferenceRequired"), String.valueOf(needInference));
+
             hydraDoc.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "supportedClass"), managedClasse);
         }
 
@@ -120,9 +132,6 @@ public class ResourcesEndpoint {
         return uriBuilder.toString();
     }
 
-    @Autowired
-    private OntologyManager ontologyManager;
-
     @GET
     @Path("/resource")
     @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
@@ -141,4 +150,28 @@ public class ResourcesEndpoint {
 
         return Response.ok(resourceModel).build();
     }
+
+    private boolean needInference(String rdfType, OntModel model) {
+        boolean need = false;
+
+        OntClass ontClass = model.getOntClass(rdfType);
+
+        ExtendedIterator<OntClass> subClasses = ontClass.listSubClasses();
+        while (subClasses.hasNext()) {
+            OntClass subClass = subClasses.next();
+            if (subClass.isRestriction()) {
+                need = true;
+            }
+        }
+
+        ExtendedIterator<OntClass> eqvClasses = ontClass.listEquivalentClasses();
+        while (eqvClasses.hasNext()) {
+            OntClass eqvClass = eqvClasses.next();
+            if (eqvClass.isRestriction() || eqvClass.isIntersectionClass()) {
+                return true;
+            }
+        }
+        return need;
+    }
+
 }

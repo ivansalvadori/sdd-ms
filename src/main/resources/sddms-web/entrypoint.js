@@ -20,9 +20,16 @@ var getApiDoc = function() {
 											aSupportedClass = $("<a href='#' class='list-group-item supportedClassItem' seealso='"
 													+ node.seeAlso
 													+ "'>"
-													+ node["@id"] + "</a>")
+													+ node["@id"] + " </a>")
 											$("#listOfSupportedClasses")
 													.append(aSupportedClass);
+
+											if (node.inferenceRequired == "true") {
+												IRlabel = $("<h6 class='label label-warning' data-toggle='tooltip' title='Inference required!'>IR</h6>");
+												$(aSupportedClass).append(
+														IRlabel);
+											}
+
 											$("#selectSearchClass").append(
 													"<option>" + node["@id"]
 															+ "</option>");
@@ -43,6 +50,7 @@ var getApiDoc = function() {
 addListenerSupportedClassClicked = function() {
 	loadingIcon = " <img class='loadingIcon' src='/sddms/loading.gif' width=20/> ";
 	$(".supportedClassItem").click(function() {
+		$(".loadingIcon").remove();
 		$(this).append(loadingIcon);
 		url = $(this).attr("seealso");
 		loadList(url)
@@ -54,6 +62,7 @@ addListenerResourceLinkClicked = function() {
 
 	$(".resourceLink").off('click');
 	$(".resourceLink").click(function() {
+		$(".loadingIcon").remove();
 		$(this).append(loadingIcon);
 		$(this).off('click'); // not working
 		url = $(this).attr("resourceuri");
@@ -63,75 +72,78 @@ addListenerResourceLinkClicked = function() {
 }
 
 loadList = function(url) {
-	$.ajax({
-		url : url,
-		type : 'GET',
-		async : true,
-		contentType : 'application/json',
-		beforeSend : function(req) {
-			req.setRequestHeader("Accept", "application/ld+json");
-		},
-		success : function(list) {
-			if(!list["items"] && list["next"]){
-				nextPage = list["next"];
-				loadList(nextPage);
-				$("#mainPanel").empty();
-				$("#mainPanel").append("Searching for Web resources.... It may take some time.");
-				return;
-			}
-			
-			if(!list["items"] && !list["next"]){
-				$("#mainPanel").empty();
-				$("#mainPanel").append("Web resource not found.");
-				$(".loadingIcon").remove();
-				return;
-			}
+	$
+			.ajax({
+				url : url,
+				type : 'GET',
+				async : true,
+				contentType : 'application/json',
+				beforeSend : function(req) {
+					req.setRequestHeader("Accept", "application/ld+json");
+				},
+				success : function(list) {
+					if (!list["items"] && list["next"]) {
+						nextPage = list["next"];
+						loadList(nextPage);
+						$("#mainPanel").empty();
+						$("#mainPanel")
+								.append(
+										"Searching for Web resources.... It may take some time.");
+						return;
+					}
 
-			$(".loadingIcon").remove();
-			
-			if (list["next"]) {
-				$("#linkNextPage").removeClass("hidden");
-				$("#linkNextPage").attr("url", list["next"]);
-				addListenerLinkPaginationPage();
-			} else {
-				$("#linkNextPage").addClass("hidden");
+					if (!list["items"] && !list["next"]) {
+						$("#mainPanel").empty();
+						$("#mainPanel").append("Web resource not found.");
+						$(".loadingIcon").remove();
+						return;
+					}
 
-			}
+					$(".loadingIcon").remove();
 
-			if (list["previous"]) {
-				$("#linkPreviousPage").removeClass("hidden");
-				$("#linkPreviousPage").attr("url", list["previous"]);
-				addListenerLinkPaginationPage();
-			} else {
-				$("#linkPreviousPage").addClass("hidden");
-			}
+					if (list["next"]) {
+						$("#linkNextPage").removeClass("hidden");
+						$("#linkNextPage").attr("url", list["next"]);
+						addListenerLinkPaginationPage();
+					} else {
+						$("#linkNextPage").addClass("hidden");
 
-			items = list["items"]
-			$("#mainPanel").empty();
+					}
 
-			if (!items) {
-				return;
-			}
+					if (list["previous"]) {
+						$("#linkPreviousPage").removeClass("hidden");
+						$("#linkPreviousPage").attr("url", list["previous"]);
+						addListenerLinkPaginationPage();
+					} else {
+						$("#linkPreviousPage").addClass("hidden");
+					}
 
-			itemsDiv = $("<div class='panel panel-default id=''>")
-			$("#mainPanel").append(itemsDiv);
+					items = list["items"]
+					$("#mainPanel").empty();
 
-			if (!Array.isArray(items)) {
-				addResourceToList(itemsDiv, items, 0)
-			} else {
-				itemCount = 0;
-				$.each(items, function(index, item) {
-					addResourceToList(itemsDiv, item, itemCount)
-					itemCount++
-				});
-			}
+					if (!items) {
+						return;
+					}
 
-			addListenerResourceLinkClicked();
-		},
-		error : function() {
+					itemsDiv = $("<div class='panel panel-default id=''>")
+					$("#mainPanel").append(itemsDiv);
 
-		}
-	});
+					if (!Array.isArray(items)) {
+						addResourceToList(itemsDiv, items, 0)
+					} else {
+						itemCount = 0;
+						$.each(items, function(index, item) {
+							addResourceToList(itemsDiv, item, itemCount)
+							itemCount++
+						});
+					}
+
+					addListenerResourceLinkClicked();
+				},
+				error : function() {
+
+				}
+			});
 }
 
 addResourceToList = function(itemsDiv, item, itemCount) {
@@ -172,9 +184,9 @@ loadResource = function(url, divtorender) {
 							resourceContent = resourceContent
 									+ createLink(key, element)
 						} else {
-							$.each(element, function(index, element){
+							$.each(element, function(index, element) {
 								resourceContent = resourceContent
-								+ createLink(key, element);
+										+ createLink(key, element);
 							});
 						}
 
@@ -263,6 +275,7 @@ addListenerLinkDoSearch = function() {
 
 	$("#linkDoSearch").click(
 			function() {
+				$(".loadingIcon").remove();
 				$(this).append(loadingIcon);
 
 				selectedClass = $("#selectSearchClass").val();
@@ -301,6 +314,7 @@ addListenerLinkPaginationPage = function() {
 
 	$("#linkNextPage").off('click');
 	$("#linkNextPage").click(function() {
+		$(".loadingIcon").remove();
 		$(this).append(loadingIcon);
 		url = $(this).attr("url");
 		loadList(url)
@@ -308,6 +322,7 @@ addListenerLinkPaginationPage = function() {
 
 	$("#linkPreviousPage").off('click');
 	$("#linkPreviousPage").click(function() {
+		$(".loadingIcon").remove();
 		$(this).append(loadingIcon);
 		url = $(this).attr("url");
 		loadList(url)
@@ -315,6 +330,7 @@ addListenerLinkPaginationPage = function() {
 }
 
 $(document).ready(function() {
+	 $('[data-toggle="tooltip"]').tooltip();   
 	var $ontology = "";
 	getApiDoc();
 
