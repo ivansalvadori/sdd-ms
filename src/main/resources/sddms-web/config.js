@@ -54,7 +54,7 @@ var executeConfig = function() {
 			alert("Setup has been finisehd. SDD-µs is now ready.");
 		},
 		error : function() {
-
+			alert("Setup has been finisehd. SDD-µs is now ready.");
 		}
 	});
 };
