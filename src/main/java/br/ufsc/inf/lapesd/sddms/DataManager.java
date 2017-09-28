@@ -17,9 +17,10 @@ public class DataManager {
     @Autowired
     private DataBase dataBase;
 
-    private CsvReader reader = new CsvReader();
-
     public void readAndStore() {
+        dataBase.resetDataset();
+
+        CsvReader reader = new CsvReader();
         reader.setWriteToFile(false);
         CsvReaderListener listener = (CsvReaderListener) dataBase;
         reader.register(listener);
@@ -27,7 +28,8 @@ public class DataManager {
     }
 
     public String getResourcePrefix() {
-        return this.reader.getPrefix();
+        CsvReader reader = new CsvReader();
+        return reader.getPrefix();
     }
 
     public void resetDataset() {

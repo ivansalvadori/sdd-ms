@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>sddms - Ontoloy</title>
+<title>sddms - Config</title>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
 <link href="/sddms/bootstrap.css" rel="stylesheet" media="screen">
 <script src="/sddms/jquery.js"></script>
 <script src="/sddms/bootstrap.js"></script>
-<script src="/sddms/ontology.js"></script>
+<script src="/sddms/config.js"></script>
 <style>
 </style>
 </head>
@@ -21,9 +21,8 @@
 				<div class="col-xs-12" style="padding-top: 20px;">
 					<ol class="breadcrumb" style="background-color: #E5E5EE;">
 						<li><a href="/sddms/">Web Resources</a></li>
-						<li class="active"><a href="/sddms/ontology.html">Ontology</a></li>
-						<li><a href="/sddms/config.html">Configuration</a></li>
-
+						<li><a href="/sddms/ontology.html">Ontology</a></li>
+						<li class="active"><a href="/sddms/config.html">Configuration</a></li>
 					</ol>
 				</div>
 			</div>
@@ -33,13 +32,14 @@
 					<!-- Default panel contents -->
 					<div class="panel-heading">
 						<div class="row">
-							<div class="col-md-10 col-xs-10">Ontology</div>
+							<div class="col-md-10 col-xs-10">Configuration</div>
 							<div class="col-md-2 col-xs-2 text-right">
-								<button id="linkSaveOntology" type="button"
+								<button id="linkSaveConfig" type="button"
 									class="btn btn-default btn-xs  aria-label="LeftAlign">
-									<span class="glyphicon glyphicon-chevron-left"
-										aria-hidden="true"></span> Save
-								</button>
+									Save</button>
+									<button id="linkExecuteConfig" type="button"
+									class="btn btn-default btn-xs  aria-label="LeftAlign">
+									Execute</button>
 							</div>
 						</div>
 
@@ -47,7 +47,7 @@
 					<div id="mainPanel">
 						<div class="row">
 							<div class="col-md-12 col-xs-12">
-								<textarea id="ontologyTextArea" rows="40"
+								<textarea id="configTextArea" rows="40"
 									class="col-md-12 col-xs-12"></textarea>
 							</div>
 						</div>

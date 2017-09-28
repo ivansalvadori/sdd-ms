@@ -12,7 +12,7 @@ import javax.ws.rs.core.Response;
 public class WebDocResource {
 
     @GET
-    @Produces(MediaType.TEXT_HTML)
+    @Produces(MediaType.TEXT_HTML + ";qs=1")
     public Response entrypoint() {
         InputStream in = this.getClass().getResourceAsStream("/sddms-web/entrypoint.html");
         return Response.ok(in).build();
@@ -126,6 +126,23 @@ public class WebDocResource {
     @SuppressWarnings("resource")
     public Response ontologyJs() {
         InputStream in = this.getClass().getResourceAsStream("/sddms-web/ontology.js");
+        return Response.ok(in).build();
+    }
+
+    @GET
+    @Path("config.html")
+    @Produces(MediaType.TEXT_HTML)
+    @SuppressWarnings("resource")
+    public Response configHtml() {
+        InputStream in = this.getClass().getResourceAsStream("/sddms-web/config.html");
+        return Response.ok(in).build();
+    }
+
+    @GET
+    @Path("config.js")
+    @SuppressWarnings("resource")
+    public Response configJs() {
+        InputStream in = this.getClass().getResourceAsStream("/sddms-web/config.js");
         return Response.ok(in).build();
     }
 

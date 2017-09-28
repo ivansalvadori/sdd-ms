@@ -61,6 +61,7 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     private String ontologyFile;
     private boolean enableInference;
+    private boolean singleRdfOutputFile = true;
     private String resourcePrefix = "";
     private String rdfFolder = "";
     private String ontologyFormat = Lang.N3.getName();
@@ -72,25 +73,18 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     private long totalNumberOfTriples = 0;
 
-    private final int maxNumberOfModelsAssociatedWithUri = 10;
+    private int mergeModelFactor = 100;
 
     @PostConstruct
     public void init() {
-        JsonObject mappingConfing = createConfigMapping();
-        this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
-        this.resourcePrefix = mappingConfing.get("prefix").getAsString();
-        this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
-        this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
-        this.rdfFolder = mappingConfing.get("rdfFolder").getAsString();
-        this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
-
+        readConfigMapping();
         System.out.println("RDF multiple files database with MapDB index");
         indexResources();
     }
 
     @Override
     public void store(Model model) {
-        if (this.resourcesPerFile == writerBatchController) {
+        if (!this.singleRdfOutputFile && this.resourcesPerFile == writerBatchController) {
             this.currentFileId = UUID.randomUUID().toString();
             writeToFile(this.currentModel, currentFileId);
             this.currentModel.removeAll();
@@ -123,6 +117,12 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     @Override
     public void resetDataset() {
+        removeRdfFolderIfExists();
+        this.currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        this.modelIDs = new HashSet<>();
+        this.totalNumberOfTriples = 0;
+        this.writerBatchController = 0;
+        readConfigMapping();
     }
 
     @Override
@@ -368,7 +368,7 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
                 if (existingModelId != null) {
                     if (!existingModelId.contains(modelId)) {
                         int modelsAssciactedWithThisUri = StringUtils.split(existingModelId, "+").length;
-                        if (modelsAssciactedWithThisUri < maxNumberOfModelsAssociatedWithUri) {
+                        if (modelsAssciactedWithThisUri < mergeModelFactor) {
                             modelId = existingModelId + "+" + modelId;
                         }
                     }
@@ -403,11 +403,21 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         this.resourcePrefix = resourcePrefix;
     }
 
-    private JsonObject createConfigMapping() {
+    private void readConfigMapping() {
         try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
             String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
             JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
-            return mappingJsonObject.get("@configuration").getAsJsonObject();
+            JsonObject mappingConfing = mappingJsonObject.get("@configuration").getAsJsonObject();
+
+            this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
+            this.resourcePrefix = mappingConfing.get("prefix").getAsString();
+            this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
+            this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
+            this.rdfFolder = mappingConfing.get("rdfFolder").getAsString();
+            this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
+            this.mergeModelFactor = mappingConfing.get("mergeModelFactor").getAsInt();
+            this.singleRdfOutputFile = mappingConfing.get("singleRdfOutputFile").getAsBoolean();
+
         } catch (IOException e) {
             throw new RuntimeException("Mapping file not found");
         }
@@ -421,6 +431,23 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     public void setResourcesPerFile(int resourcesPerFile) {
         this.resourcesPerFile = resourcesPerFile;
+    }
+
+    private void removeRdfFolderIfExists() {
+        File folder = new File(this.rdfFolder);
+        String[] entries = folder.list();
+
+        if (entries == null) {
+            return;
+        }
+
+        for (String s : entries) {
+            File currentFile = new File(folder.getPath(), s);
+            currentFile.delete();
+        }
+        folder.delete();
+        File index = new File("index.db");
+        index.delete();
     }
 
 }

@@ -50,8 +50,9 @@
      "csvFilesFolder": "data",
      "prefix": "http://www.ssp.sp.gov.br/transparenciassp/",
      "ontologyFormat": "N3",
-     "singleRdfOutputFile": false,   
-     "resourcesPerFile": 10,
+     "singleRdfOutputFile": true, 
+     "mergeModelFactor": 100,  
+     "resourcesPerFile": 5,
      "enableInference": true   
    }
 }
