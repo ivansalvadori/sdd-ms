@@ -1,67 +1,52 @@
-@prefix owl:   <http://www.w3.org/2002/07/owl#> .
 @prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
 @prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix api:   <http://www.public-security-ontology/> .
 
-api:CaminhaoFurtado  a       owl:Class ;
-        owl:equivalentClass  [ a                   owl:Class ;
-                               owl:intersectionOf  ( api:VeiculoFurtado
-                                                     [ a               owl:Restriction ;
-                                                       owl:hasValue    "CAMINHÃO" ;
-                                                       owl:onProperty  api:tipoVeiculo
-                                                     ]
-                                                   )
-                             ] .
+<http://www.ssp.sp.gov.br/transparenciassp/7E4CDE4F48BBF4C93F9AAC4C0CE8BC8660C77063>
+        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/68EAB30C25D2A3BBA1BCDE821682BC0E234D3404> .
 
-api:MotoFurtada  a           owl:Class ;
-        owl:equivalentClass  [ a                   owl:Class ;
-                               owl:intersectionOf  ( api:VeiculoFurtado
-                                                     [ a               owl:Restriction ;
-                                                       owl:hasValue    "MOTOCICLO" ;
-                                                       owl:onProperty  api:tipoVeiculo
-                                                     ]
-                                                   )
-                             ] .
+api:LocalDaOcorrencia
+        a       owl:Class .
+
+api:BoletimOcorrenciaFurtoVeiculo
+        a       owl:Class .
+
+api:numeroOcorrencia  a  owl:DatatypeProperty .
+
+api:placa  a    owl:DatatypeProperty .
+
+api:praca  a                    owl:DatatypeProperty ;
+        owl:equivalentProperty  api:placa .
+
+api:veiculoFurtado  a  owl:ObjectProperty ;
+        owl:inverseOf  api:possuiBoletimOcorrencia .
+
+api:VeiculoFurtado  a  owl:Class .
+
+api:GeoLocalizacao  a  owl:Class .
+
+api:idBO  a                     owl:DatatypeProperty ;
+        owl:equivalentProperty  api:numeroOcorrencia .
+
+api:BO  a                    owl:Class ;
+        owl:equivalentClass  api:BoletimOcorrenciaFurtoVeiculo .
 
 api:localDaOcorrencia
         a              owl:ObjectProperty ;
         owl:inverseOf  api:possuiBoletimOcorrencia .
 
-api:numeroOcorrencia  a  owl:DatatypeProperty .
-
-api:veiculoFurtado  a  owl:ObjectProperty ;
-        owl:inverseOf  api:possuiBoletimOcorrencia .
-
-api:BOnoturno  a             owl:Class ;
-        owl:equivalentClass  [ a                   owl:Class ;
-                               owl:intersectionOf  ( api:BO
-                                                     [ a               owl:Restriction ;
-                                                       owl:hasValue    "A NOITE" ;
-                                                       owl:onProperty  api:periodoOcorrencia
-                                                     ]
-                                                   )
-                             ] .
-
-api:BO  a                    owl:Class ;
-        owl:equivalentClass  api:BoletimOcorrenciaFurtoVeiculo .
-
-api:GeoLocalizacao  a  owl:Class .
+api:CarroRoubado  a          owl:Class ;
+        owl:equivalentClass  api:VeiculoFurtado .
 
 api:tipoVeiculo  a  owl:DatatypeProperty .
-
-api:VeiculoFurtado  a  owl:Class .
-
-api:LocalDaOcorrencia
-        a       owl:Class .
 
 api:possuiBoletimOcorrencia
         a       owl:ObjectProperty .
 
-api:placa  a    owl:DatatypeProperty .
+<http://www.ssp.sp.gov.br/transparenciassp/8E58984DE248F4071053CF3A155D4B5C510C7CAE>
+        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/CEA001BC6113EE8D4FD6C0389CC03C450A3C10DE> .
 
 api:periodoOcorrencia
         a       owl:DatatypeProperty .
-
-api:BoletimOcorrenciaFurtoVeiculo
-        a       owl:Class .

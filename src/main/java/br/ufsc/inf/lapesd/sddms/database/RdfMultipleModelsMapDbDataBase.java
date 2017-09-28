@@ -2,25 +2,20 @@ package br.ufsc.inf.lapesd.sddms.database;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
@@ -34,26 +29,27 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.InfModel;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RiotNotFoundException;
+import org.apache.jena.util.ResourceUtils;
 import org.apache.jena.util.iterator.ExtendedIterator;
+import org.apache.jena.vocabulary.OWL;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.mapdb.serializer.SerializerCompressionWrapper;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
 import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
 
-public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListener {
+public class RdfMultipleModelsMapDbDataBase extends AbstractDataBase implements DataBase, CsvReaderListener {
 
     private InfModel currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 
@@ -150,22 +146,35 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     @Override
     public Model load(String resourceUri) {
+        Set<String> urisToLoockUp = new TreeSet<>();
+        urisToLoockUp.add(resourceUri);
+
+        if (this.hasSameAs(resourceUri)) {
+            Model ontologyModel = this.createOntologyModel();
+            NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(resourceUri), OWL.sameAs);
+            while (sameAsList.hasNext()) {
+                urisToLoockUp.add(sameAsList.next().toString());
+            }
+        }
+
         Set<String> modelIDsThatContainResourceUri = new HashSet<>();
         DB db = DBMaker.fileDB("index.db").fileMmapEnable().readOnly().make();
         Iterable<String> allNames = db.getAllNames();
         for (String mapName : allNames) {
             HTreeMap<String, String> map = db.hashMap(mapName).keySerializer(new SerializerCompressionWrapper(Serializer.STRING)).valueSerializer(new SerializerCompressionWrapper(Serializer.STRING)).open();
-            String modelId = map.get(resourceUri);
-            if (modelId == null) {
-                continue;
-            }
-            if (modelId.contains("+")) {
-                String[] split = StringUtils.split(modelId, "+");
-                for (String id : split) {
-                    modelIDsThatContainResourceUri.add(id);
+            for (String uri : urisToLoockUp) {
+                String modelId = map.get(uri);
+                if (modelId == null) {
+                    continue;
                 }
-            } else {
-                modelIDsThatContainResourceUri.add(modelId);
+                if (modelId.contains("+")) {
+                    String[] split = StringUtils.split(modelId, "+");
+                    for (String id : split) {
+                        modelIDsThatContainResourceUri.add(id);
+                    }
+                } else {
+                    modelIDsThatContainResourceUri.add(modelId);
+                }
             }
         }
 
@@ -174,10 +183,15 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         for (String modelId : modelIDsThatContainResourceUri) {
             InfModel model = this.readModelFromFile(String.valueOf(modelId));
-            Resource resource = model.getResource(resourceUri);
-            StmtIterator properties = resource.listProperties();
-            while (properties.hasNext()) {
-                resourceModel.add(properties.next());
+            for (String uri : urisToLoockUp) {
+                Resource resource = model.getResource(uri);
+                resource = ResourceUtils.renameResource(resource, resourceUri);
+                StmtIterator properties = resource.listProperties();
+                while (properties.hasNext()) {
+                    Statement prop = properties.next();
+                    resourceModel.add(prop);
+                }
+
             }
         }
         return resourceModel;
@@ -240,7 +254,16 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
             }
         }
 
+        Model ontologyModel = this.createOntologyModel();
         for (Resource resource : resources) {
+            String resourceUri = resource.getURI();
+            if (this.hasSameAs(resourceUri)) {
+                NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(resourceUri), OWL.sameAs);
+                while (sameAsList.hasNext()) {
+                    Resource sameAsResource = ontologyModel.createResource(sameAsList.next().toString());
+                    resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), sameAsResource);
+                }
+            }
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
         }
 
@@ -274,15 +297,34 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         Set<String> properties = propertiesAndvalues.keySet();
 
         for (String prop : properties) {
-            String sparqlFragment = "?resource <%s> \"%s\" .  \n";
-            sparqlFragment = String.format(sparqlFragment, prop, propertiesAndvalues.get(prop));
-            queryStr.append(sparqlFragment);
+            Set<String> eqvProperties = this.getEqvProperty(prop);
+
+            if (eqvProperties == null) {
+                String sparqlFragment = "?resource <%s> \"%s\"  . \n";
+                sparqlFragment = String.format(sparqlFragment, prop, propertiesAndvalues.get(prop));
+                queryStr.append(sparqlFragment);
+            } else {
+                String sparqlFragment = "?resource <%s>";
+                sparqlFragment = String.format(sparqlFragment, prop);
+                queryStr.append(sparqlFragment);
+
+                for (String eqvPro : eqvProperties) {
+                    sparqlFragment = " | <%s> ";
+                    sparqlFragment = String.format(sparqlFragment, eqvPro);
+                    queryStr.append(sparqlFragment);
+                }
+                sparqlFragment = "\"%s\"  . \n";
+                sparqlFragment = String.format(sparqlFragment, propertiesAndvalues.get(prop));
+                queryStr.append(sparqlFragment);
+            }
         }
 
         String sparqlFragmentOrderByClause = "?resource <%s> ?orderbyProp .  \n";
         sparqlFragmentOrderByClause = String.format(sparqlFragmentOrderByClause, "http://www.public-security-ontology/dataOcorrencias");
 
         queryStr.append("} \n");
+
+        System.out.println(queryStr);
 
         Query query = QueryFactory.create(queryStr.toString());
         QueryExecution qexec = QueryExecutionFactory.create(query, infModel);
@@ -295,19 +337,6 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
         }
 
         return resources;
-    }
-
-    private Model createOntologyModel() {
-        String ontologyString = null;
-        try {
-            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, this.ontologyFormat);
-        return infModel;
     }
 
     private InfModel readModelFromFile(String modelId) {
@@ -401,26 +430,6 @@ public class RdfMultipleModelsMapDbDataBase implements DataBase, CsvReaderListen
 
     public void setResourcePrefix(String resourcePrefix) {
         this.resourcePrefix = resourcePrefix;
-    }
-
-    private void readConfigMapping() {
-        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
-            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
-            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
-            JsonObject mappingConfing = mappingJsonObject.get("@configuration").getAsJsonObject();
-
-            this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
-            this.resourcePrefix = mappingConfing.get("prefix").getAsString();
-            this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
-            this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
-            this.rdfFolder = mappingConfing.get("rdfFolder").getAsString();
-            this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
-            this.mergeModelFactor = mappingConfing.get("mergeModelFactor").getAsInt();
-            this.singleRdfOutputFile = mappingConfing.get("singleRdfOutputFile").getAsBoolean();
-
-        } catch (IOException e) {
-            throw new RuntimeException("Mapping file not found");
-        }
     }
 
     @Override

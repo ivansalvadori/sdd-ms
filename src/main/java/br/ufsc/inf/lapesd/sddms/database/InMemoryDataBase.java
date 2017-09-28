@@ -1,20 +1,11 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -32,11 +23,10 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
 
-public class InMemoryDataBase implements DataBase, CsvReaderListener {
+public class InMemoryDataBase extends AbstractDataBase implements DataBase, CsvReaderListener {
 
     private String ontologyFile;
     private boolean enableInference;
@@ -47,7 +37,7 @@ public class InMemoryDataBase implements DataBase, CsvReaderListener {
 
     @PostConstruct
     public void init() {
-        JsonObject mappingConfing = createConfigMapping();
+        JsonObject mappingConfing = readConfigMapping();
         this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
         this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
         this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
@@ -172,19 +162,6 @@ public class InMemoryDataBase implements DataBase, CsvReaderListener {
         return resourceModel;
     }
 
-    private Model createOntologyModel() {
-        String ontologyString = null;
-        try {
-            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, ontologyFormat);
-        return infModel;
-    }
-
     @Override
     public void commit() {
         // nothing to do
@@ -198,16 +175,6 @@ public class InMemoryDataBase implements DataBase, CsvReaderListener {
     @Override
     public void readProcessFinished() {
         // nothing to do
-    }
-
-    private JsonObject createConfigMapping() {
-        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
-            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
-            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
-            return mappingJsonObject.get("@configuration").getAsJsonObject();
-        } catch (IOException e) {
-            throw new RuntimeException("Mapping file not found");
-        }
     }
 
 }

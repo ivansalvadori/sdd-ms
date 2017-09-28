@@ -63,14 +63,17 @@ public class ResourcesEndpoint {
 
         String baseUri = uriInfo.getBaseUri().toString();
 
-        OntModel ontologyInfModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF, this.ontologyManager.createOntologyInfModel());
+        // OntModel ontologyInfModel =
+        // ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF,
+        // this.ontologyManager.createOntologyInfModel());
 
         for (String uri : allManagedSemanticClasses) {
             Resource managedClasse = resourceModel.createResource(uri, hydraClass);
             managedClasse.addProperty(resourceModel.createProperty("http://www.w3.org/2000/01/rdf-schema#seeAlso"), baseUri + "resources?uriClass=" + uri);
 
-            boolean needInference = this.needInference(uri, ontologyInfModel);
-            managedClasse.addProperty(resourceModel.createProperty("http://sddms.com.br/ontology/inferenceRequired"), String.valueOf(needInference));
+            // boolean needInference = this.needInference(uri, ontologyInfModel);
+            // managedClasse.addProperty(resourceModel.createProperty("http://sddms.com.br/ontology/inferenceRequired"),
+            // String.valueOf(needInference));
 
             hydraDoc.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "supportedClass"), managedClasse);
         }

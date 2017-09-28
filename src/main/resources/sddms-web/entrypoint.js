@@ -96,7 +96,8 @@ loadList = function(url) {
 						$("#mainPanel").empty();
 						$("#mainPanel").append("Web resource not found.");
 						$(".loadingIcon").remove();
-						return;
+						$("#linkNextPage").addClass("hidden");
+						return;  
 					}
 
 					$(".loadingIcon").remove();
@@ -107,7 +108,6 @@ loadList = function(url) {
 						addListenerLinkPaginationPage();
 					} else {
 						$("#linkNextPage").addClass("hidden");
-
 					}
 
 					if (list["previous"]) {

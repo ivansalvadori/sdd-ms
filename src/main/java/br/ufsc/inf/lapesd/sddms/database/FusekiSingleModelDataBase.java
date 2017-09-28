@@ -1,9 +1,5 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +23,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-public class FusekiSingleModelDataBase implements DataBase {
+public class FusekiSingleModelDataBase extends AbstractDataBase implements DataBase {
 
     @Value("${config.ontologyFile}")
     private String ontologyFile;
@@ -159,20 +155,6 @@ public class FusekiSingleModelDataBase implements DataBase {
         qexec.close();
         return resourceModel;
 
-    }
-
-    private Model createOntologyModel() {
-        String ontologyString = null;
-        try {
-            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, "N3");
-        return infModel;
     }
 
     @Override

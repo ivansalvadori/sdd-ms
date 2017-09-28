@@ -2,13 +2,8 @@ package br.ufsc.inf.lapesd.sddms.database;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -21,7 +16,6 @@ import java.util.UUID;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -41,11 +35,10 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
 
-public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
+public class RdfMultipleModelsDataBase extends AbstractDataBase implements DataBase, CsvReaderListener {
 
     private InfModel currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
 
@@ -68,7 +61,7 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
 
     @PostConstruct
     public void init() {
-        JsonObject mappingConfing = createConfigMapping();
+        JsonObject mappingConfing = readConfigMapping();
         this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
         this.resourcePrefix = mappingConfing.get("prefix").getAsString();
         this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
@@ -242,19 +235,6 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
         return resourceModel;
     }
 
-    private Model createOntologyModel() {
-        String ontologyString = null;
-        try {
-            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        infModel.read(new StringReader(ontologyString), null, this.ontologyFormat);
-        return infModel;
-    }
-
     private InfModel readModelFromFile(String modelId) {
         InfModel infModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         RDFDataMgr.read(infModel, rdfFolder + File.separator + modelId, Lang.NTRIPLES);
@@ -309,16 +289,6 @@ public class RdfMultipleModelsDataBase implements DataBase, CsvReaderListener {
 
     public void setResourcePrefix(String resourcePrefix) {
         this.resourcePrefix = resourcePrefix;
-    }
-
-    private JsonObject createConfigMapping() {
-        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
-            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
-            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
-            return mappingJsonObject.get("@configuration").getAsJsonObject();
-        } catch (IOException e) {
-            throw new RuntimeException("Mapping file not found");
-        }
     }
 
     @Override
