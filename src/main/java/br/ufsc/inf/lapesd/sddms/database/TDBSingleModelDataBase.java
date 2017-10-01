@@ -23,6 +23,7 @@ import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.tdb.TDBFactory;
 import org.apache.jena.vocabulary.OWL;
@@ -102,10 +103,11 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         Dataset dataset = TDBFactory.createDataset(tdbDirectory);
         dataset.begin(ReadWrite.READ);
 
-        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+        Model ontologyModel = this.createOntologyModel();
+        resourceModel.add(ontologyModel);
 
         if (this.hasSameAs(resourceUri)) {
-            Model ontologyModel = this.createOntologyModel();
             NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(resourceUri), OWL.sameAs);
             while (sameAsList.hasNext()) {
                 Resource createResource = resourceModel.createResource(resourceUri);
@@ -117,8 +119,16 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
 
         }
 
+        OntModel finalResource = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+
+        StmtIterator properties = resourceModel.getResource(resourceUri).listProperties();
+        while (properties.hasNext()) {
+            Statement next = properties.next();
+            finalResource.add(next);
+        }
+
         dataset.close();
-        return resourceModel;
+        return finalResource;
     }
 
     private void findAndPopulate(String resourceUri, Dataset dataset, OntModel resourceModel, Resource createResource) {

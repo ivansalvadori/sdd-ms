@@ -7,12 +7,15 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
@@ -21,6 +24,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.OWL;
 
 import com.google.gson.JsonObject;
@@ -33,6 +37,14 @@ public class AbstractDataBase {
     }
 
     public Query createSparql(String rdfType, Map<String, String> propertiesAndvalues, int pageSize, int offset) {
+        List<String> objectPropertiesList = new ArrayList<>();
+        OntModel ontologyModel = createOntologyModel();
+        ExtendedIterator<ObjectProperty> objectProperties = ontologyModel.listObjectProperties();
+        while (objectProperties.hasNext()) {
+            ObjectProperty next = objectProperties.next();
+            objectPropertiesList.add(next.getURI());
+        }
+
         StringBuilder queryStr = new StringBuilder();
         queryStr.append("PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n");
         queryStr.append("PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n");
@@ -45,9 +57,13 @@ public class AbstractDataBase {
 
         for (String prop : properties) {
             Set<String> eqvProperties = this.getEqvProperty(prop);
+            String propertyValue = propertiesAndvalues.get(prop);
             if (eqvProperties == null) {
                 String sparqlFragment = "?resource <%s> \"%s\"  . \n";
-                sparqlFragment = String.format(sparqlFragment, prop, propertiesAndvalues.get(prop));
+                if (objectPropertiesList.contains(prop)) {
+                    sparqlFragment = "?resource <%s> <%s>  . \n";
+                }
+                sparqlFragment = String.format(sparqlFragment, prop, propertyValue);
                 queryStr.append(sparqlFragment);
             } else {
                 String sparqlFragment = "?resource <%s>";
@@ -60,7 +76,10 @@ public class AbstractDataBase {
                     queryStr.append(sparqlFragment);
                 }
                 sparqlFragment = "\"%s\"  . \n";
-                sparqlFragment = String.format(sparqlFragment, propertiesAndvalues.get(prop));
+                if (objectPropertiesList.contains(prop)) {
+                    sparqlFragment = " <%s>  . \n";
+                }
+                sparqlFragment = String.format(sparqlFragment, propertyValue);
                 queryStr.append(sparqlFragment);
             }
         }
@@ -137,5 +156,4 @@ public class AbstractDataBase {
         }
         return false;
     }
-
 }

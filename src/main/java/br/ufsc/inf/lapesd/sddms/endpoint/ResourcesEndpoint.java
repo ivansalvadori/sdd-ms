@@ -96,7 +96,10 @@ public class ResourcesEndpoint {
         MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
         Set<String> keySet = queryParameters.keySet();
         for (String prop : keySet) {
-            propertyValues.put(prop, queryParameters.getFirst(prop));
+            String firstPropertyValue = queryParameters.getFirst(prop);
+            String pathToReplace = uriInfo.getBaseUri() + "resource?uri=";
+            String firstPropertyValueReplaced = firstPropertyValue.replace(pathToReplace, this.dataManager.getResourcePrefix());
+            propertyValues.put(prop, firstPropertyValueReplaced);
         }
         propertyValues.remove("uriClass");
         Model queryTDB = dataManager.queryTDB(uriClass, propertyValues);

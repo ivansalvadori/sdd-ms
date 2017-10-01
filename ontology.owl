@@ -4,49 +4,52 @@
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix api:   <http://www.public-security-ontology/> .
 
-<http://www.ssp.sp.gov.br/transparenciassp/7E4CDE4F48BBF4C93F9AAC4C0CE8BC8660C77063>
-        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/68EAB30C25D2A3BBA1BCDE821682BC0E234D3404> .
-
-api:LocalDaOcorrencia
-        a       owl:Class .
-
-api:BoletimOcorrenciaFurtoVeiculo
-        a       owl:Class .
+api:localDaOcorrencia
+        a              owl:ObjectProperty ;
+        owl:inverseOf  api:possuiBoletimOcorrencia .
 
 api:numeroOcorrencia  a  owl:DatatypeProperty .
 
-api:placa  a    owl:DatatypeProperty .
+api:veiculoFurtado  a           owl:ObjectProperty ;
+        owl:equivalentProperty  api:bosta ;
+        owl:inverseOf           api:possuiBoletimOcorrencia .
 
-api:praca  a                    owl:DatatypeProperty ;
-        owl:equivalentProperty  api:placa .
+api:bosta  a    owl:ObjectProperty .
 
-api:veiculoFurtado  a  owl:ObjectProperty ;
-        owl:inverseOf  api:possuiBoletimOcorrencia .
+api:BO  a                    owl:Class ;
+        owl:equivalentClass  api:BoletimOcorrenciaFurtoVeiculo .
 
-api:VeiculoFurtado  a  owl:Class .
+<http://www.ssp.sp.gov.br/transparenciassp/7E4CDE4F48BBF4C93F9AAC4C0CE8BC8660C77063>
+        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/68EAB30C25D2A3BBA1BCDE821682BC0E234D3404> .
 
 api:GeoLocalizacao  a  owl:Class .
 
 api:idBO  a                     owl:DatatypeProperty ;
         owl:equivalentProperty  api:numeroOcorrencia .
 
-api:BO  a                    owl:Class ;
-        owl:equivalentClass  api:BoletimOcorrenciaFurtoVeiculo .
+api:praca  a                    owl:DatatypeProperty ;
+        owl:equivalentProperty  api:placa .
 
-api:localDaOcorrencia
-        a              owl:ObjectProperty ;
-        owl:inverseOf  api:possuiBoletimOcorrencia .
+<http://www.ssp.sp.gov.br/transparenciassp/066346115C4BA65D98A82EA6AA52BA44BE8FC3E8>
+        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/8692A62B9F9D45F8D84507049BB33E06D93B633E> .
+
+api:tipoVeiculo  a  owl:DatatypeProperty .
 
 api:CarroRoubado  a          owl:Class ;
         owl:equivalentClass  api:VeiculoFurtado .
 
-api:tipoVeiculo  a  owl:DatatypeProperty .
+api:LocalDaOcorrencia
+        a       owl:Class .
 
 api:possuiBoletimOcorrencia
         a       owl:ObjectProperty .
 
-<http://www.ssp.sp.gov.br/transparenciassp/8E58984DE248F4071053CF3A155D4B5C510C7CAE>
-        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/CEA001BC6113EE8D4FD6C0389CC03C450A3C10DE> .
+api:VeiculoFurtado  a  owl:Class .
+
+api:placa  a    owl:DatatypeProperty .
+
+api:BoletimOcorrenciaFurtoVeiculo
+        a       owl:Class .
 
 api:periodoOcorrencia
         a       owl:DatatypeProperty .

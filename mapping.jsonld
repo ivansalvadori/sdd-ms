@@ -53,7 +53,7 @@
      "singleRdfOutputFile": true, 
      "mergeModelFactor": 100,  
      "resourcesPerFile": 5,
-     "pageSize": 200,
+     "pageSize": 10,
      "enableInference": true   
    }
 }
