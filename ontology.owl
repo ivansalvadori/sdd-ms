@@ -8,6 +8,9 @@ api:localDaOcorrencia
         a              owl:ObjectProperty ;
         owl:inverseOf  api:possuiBoletimOcorrencia .
 
+<http://www.ssp.sp.gov.br/transparenciassp/BDFACA08BE9C388B0B4490D711FD4EC856467646>
+        owl:sameAs  <http://babbage.tk.jku.at:40000/sddms/resource?uri=504EB4EFD6C3FC820188E3D0A1423EE175CE58DEF97240E5A239818D9A524A9A> .
+
 api:numeroOcorrencia  a  owl:DatatypeProperty .
 
 api:veiculoFurtado  a           owl:ObjectProperty ;
@@ -19,8 +22,11 @@ api:bosta  a    owl:ObjectProperty .
 api:BO  a                    owl:Class ;
         owl:equivalentClass  api:BoletimOcorrenciaFurtoVeiculo .
 
-<http://www.ssp.sp.gov.br/transparenciassp/7E4CDE4F48BBF4C93F9AAC4C0CE8BC8660C77063>
-        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/68EAB30C25D2A3BBA1BCDE821682BC0E234D3404> .
+[ a            owl:Ontology ;
+  owl:imports  <http://babbage.tk.jku.at:40000/sddms/resource?uri=504EB4EFD6C3FC820188E3D0A1423EE175CE58DEF97240E5A239818D9A524A9A>
+] .
+
+api:saopaulo  a  api:Cidade .
 
 api:GeoLocalizacao  a  owl:Class .
 
@@ -30,13 +36,26 @@ api:idBO  a                     owl:DatatypeProperty ;
 api:praca  a                    owl:DatatypeProperty ;
         owl:equivalentProperty  api:placa .
 
-<http://www.ssp.sp.gov.br/transparenciassp/066346115C4BA65D98A82EA6AA52BA44BE8FC3E8>
-        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/8692A62B9F9D45F8D84507049BB33E06D93B633E> .
+api:licensePlate  a             owl:DatatypeProperty ;
+        owl:equivalentProperty  api:placa .
 
 api:tipoVeiculo  a  owl:DatatypeProperty .
 
+api:Cidade  a   owl:Class .
+
 api:CarroRoubado  a          owl:Class ;
-        owl:equivalentClass  api:VeiculoFurtado .
+        owl:equivalentClass  api:VeiculoFurtado , api:StolenVehicule .
+
+<http://babbage.tk.jku.at:40000/sddms/resource?uri=504EB4EFD6C3FC820188E3D0A1423EE175CE58DEF97240E5A239818D9A524A9A>
+        a                       api:StolenVehicule , api:VeiculoFurtado ;
+        api:color               "Prata" ;
+        api:hasTheftAutoReport  <http://babbage.tk.jku.at:40000/sddms/resource?uri=C6937C5AFCEB1EED04EFBD08A15C580B13B7AFBE1ACC76EDC29E706DF1469F57> ;
+        api:licensePlate        "DBQ5416" ;
+        api:licensedIn          <http://babbage.tk.jku.at:40000/sddms/resource?uri=F2E22A2EBD85870C535DD3A70FA0EA69A22F5CD46066BDA90F4DCF01C6B644A7> ;
+        api:model               "GM/CORSA WIND" ;
+        api:referenceModelYear  "2000" ;
+        api:typeOfVehicule      "AUTOMOVEL" ;
+        api:year                "2000" .
 
 api:LocalDaOcorrencia
         a       owl:Class .
@@ -53,3 +72,6 @@ api:BoletimOcorrenciaFurtoVeiculo
 
 api:periodoOcorrencia
         a       owl:DatatypeProperty .
+
+api:UmCarroRoubado  a  <http://www.public-security-ontology/api:VeiculoFurtado> ;
+        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/941E59B8FA1412F4A39A052B082A0CC311713AF5> .

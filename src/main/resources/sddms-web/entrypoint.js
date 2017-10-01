@@ -67,83 +67,81 @@ addListenerResourceLinkClicked = function() {
 		$(this).off('click'); // not working
 		url = $(this).attr("resourceuri");
 		divtorender = $(this).attr("divtorender");
-		loadResource(url, divtorender)
+		loadResource(url, divtorender, 'application/json')
 	});
 }
 
 loadList = function(url) {
 	$("#mainPanel").empty();
-	$("#mainPanel")
-			.append(
-					"Searching for Web resources.... It may take some time.");
-	$
-			.ajax({
-				url : url,
-				type : 'GET',
-				async : true,
-				contentType : 'application/json',
-				beforeSend : function(req) {
-					req.setRequestHeader("Accept", "application/ld+json");
-				},
-				success : function(list) {
-					if (!list["items"] && list["next"]) {
-						nextPage = list["next"];
-						loadList(nextPage);
-						return;
-					}
+	$("#mainPanel").append(
+			"Searching for Web resources.... It may take some time.");
+	$.ajax({
+		url : url,
+		type : 'GET',
+		async : true,
+		contentType : 'application/json',
+		beforeSend : function(req) {
+			req.setRequestHeader("Accept", "application/ld+json");
+		},
+		success : function(list) {
+			if (!list["items"] && list["next"]) {
+				nextPage = list["next"];
+				loadList(nextPage);
+				return;
+			}
 
-					if (!list["items"] && !list["next"]) {
-						$("#mainPanel").empty();
-						$("#mainPanel").append("Web resource not found.");
-						$(".loadingIcon").remove();
-						$("#linkNextPage").addClass("hidden");
-						return;  
-					}
+			if (!list["items"] && !list["next"]) {
+				$("#mainPanel").empty();
+				$("#mainPanel").append("Web resource not found.");
+				$(".loadingIcon").remove();
+				$("#linkNextPage").addClass("hidden");
+				return;
+			}
 
-					$(".loadingIcon").remove();
+			$(".loadingIcon").remove();
 
-					if (list["next"]) {
-						$("#linkNextPage").removeClass("hidden");
-						$("#linkNextPage").attr("url", list["next"]);
-						addListenerLinkPaginationPage();
-					} else {
-						$("#linkNextPage").addClass("hidden");
-					}
+			if (list["next"]) {
+				$("#linkNextPage").removeClass("hidden");
+				$("#linkNextPage").attr("url", list["next"]);
+				addListenerLinkPaginationPage();
+			} else {
+				$("#linkNextPage").addClass("hidden");
+			}
 
-					if (list["previous"]) {
-						$("#linkPreviousPage").removeClass("hidden");
-						$("#linkPreviousPage").attr("url", list["previous"]);
-						addListenerLinkPaginationPage();
-					} else {
-						$("#linkPreviousPage").addClass("hidden");
-					}
+			if (list["previous"]) {
+				$("#linkPreviousPage").removeClass("hidden");
+				$("#linkPreviousPage").attr("url", list["previous"]);
+				addListenerLinkPaginationPage();
+			} else {
+				$("#linkPreviousPage").addClass("hidden");
+			}
 
-					items = list["items"]
-					$("#mainPanel").empty();
+			items = list["items"]
+			$("#mainPanel").empty();
 
-					if (!items) {
-						return;
-					}
+			if (!items) {
+				return;
+			}
 
-					itemsDiv = $("<div class='panel panel-default id=''>")
-					$("#mainPanel").append(itemsDiv);
+			itemsDiv = $("<div class='panel panel-default id=''>")
+			$("#mainPanel").append(itemsDiv);
 
-					if (!Array.isArray(items)) {
-						addResourceToList(itemsDiv, items, 0)
-					} else {
-						itemCount = 0;
-						$.each(items, function(index, item) {
-							addResourceToList(itemsDiv, item, itemCount)
-							itemCount++
-						});
-					}
+			if (!Array.isArray(items)) {
+				addResourceToList(itemsDiv, items, 0)
+			} else {
+				itemCount = 0;
+				$.each(items, function(index, item) {
+					addResourceToList(itemsDiv, item, itemCount)
+					itemCount++
+				});
+			}
 
-					addListenerResourceLinkClicked();
-				},
-				error : function() {
+			addListenerResourceLinkClicked();
+		},
+		error : function() {
 
-				}
-			});
+		}
+	});
 }
 
 addResourceToList = function(itemsDiv, item, itemCount) {
@@ -163,49 +161,78 @@ addResourceToList = function(itemsDiv, item, itemCount) {
 	$(itemsDiv).append(itemPanel);
 }
 
-loadResource = function(url, divtorender) {
+loadResource = function(url, divtorender, contentType) {
 	$.ajax({
 		url : url,
 		type : 'GET',
 		async : true,
-		contentType : 'application/json',
+		contentType : contentType,
 		beforeSend : function(req) {
 			req.setRequestHeader("Accept", "application/ld+json");
 		},
 		success : function(resource) {
 			resourceContent = "";
-			$.each(resource, function(key, element) {
-				if (key != "@context") {
-					contextOfKey = resource["@context"][key];
-					if (resource["@context"][key] && contextOfKey["@type"]
-							&& contextOfKey["@type"] == "@id") {
+			if (!resource["@context"]) {
+				resourceContent = loadResourceHtmlRepresentation(url);
+			} else {
 
-						if (!Array.isArray(element)) {
-							resourceContent = resourceContent
-									+ createLink(key, element)
-						} else {
-							$.each(element, function(index, element) {
+				$.each(resource, function(key, element) {
+					if (key != "@context" && resource["@context"]) {
+						contextOfKey = resource["@context"][key];
+						if (resource["@context"][key] && contextOfKey["@type"]
+								&& contextOfKey["@type"] == "@id") {
+
+							if (!Array.isArray(element)) {
 								resourceContent = resourceContent
-										+ createLink(key, element);
-							});
-						}
+										+ createLink(key, element)
+							} else {
+								$.each(element, function(index, element) {
+									resourceContent = resourceContent
+											+ createLink(key, element);
+								});
+							}
 
-					} else {
-						resourceContent = resourceContent + "<b>" + key
-								+ ":</b> " + element + "<br>";
+						} else {
+							resourceContent = resourceContent + "<b>" + key
+									+ ":</b> " + element + "<br>";
+						}
 					}
-				}
-			});
+				});
+
+			}
+
 			$("#" + divtorender).html(resourceContent)
 			addListenerResourceLinkClicked();
 			$("#" + divtorender).removeClass("hidden")
 			$(".loadingIcon").remove();
 		},
 		error : function() {
-
+			resourceContent = loadResourceHtmlRepresentation(url, divtorender);
 		}
 
 	});
+
+	loadResourceHtmlRepresentation = function(url) {
+		$.ajax({
+			url : url,
+			type : 'GET',
+			async : false,
+			contentType : contentType,
+			beforeSend : function(req) {
+				req.setRequestHeader("Accept", "text/html");
+			},
+			success : function(resource) {
+				$("#" + divtorender).html(resource)
+				addListenerResourceLinkClicked();
+				$("#" + divtorender).removeClass("hidden")
+				$(".loadingIcon").remove();
+			},
+			error : function() {
+
+			}
+
+		});
+	}
 
 	createLink = function(key, element) {
 		resourceContent = "<b>"
@@ -330,7 +357,7 @@ addListenerLinkPaginationPage = function() {
 }
 
 $(document).ready(function() {
-	 $('[data-toggle="tooltip"]').tooltip();   
+	$('[data-toggle="tooltip"]').tooltip();
 	var $ontology = "";
 	getApiDoc();
 

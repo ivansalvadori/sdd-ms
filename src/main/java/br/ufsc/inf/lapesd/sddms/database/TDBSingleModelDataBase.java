@@ -84,7 +84,7 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         q.append("select ?type { ?type a owl:Class }");
         Query query = QueryFactory.create(q.toString());
 
-        QueryExecution qexec = QueryExecutionFactory.create(query, createOntologyModel());
+        QueryExecution qexec = QueryExecutionFactory.create(query, this.ontologyManager.getOntologyModel());
         ResultSet results = qexec.execSelect();
 
         while (results.hasNext()) {
@@ -102,25 +102,23 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
     public Model load(String resourceUri) {
         Dataset dataset = TDBFactory.createDataset(tdbDirectory);
         dataset.begin(ReadWrite.READ);
+        Model ontologyModel = super.ontologyManager.getOntologyModel();
 
         OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        Model ontologyModel = this.createOntologyModel();
-        resourceModel.add(ontologyModel);
 
         if (this.hasSameAs(resourceUri)) {
             NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(resourceUri), OWL.sameAs);
             while (sameAsList.hasNext()) {
-                Resource createResource = resourceModel.createResource(resourceUri);
-                findAndPopulate(sameAsList.next().toString(), dataset, resourceModel, createResource);
+                resourceModel.add(findAndPopulate(sameAsList.next().toString(), dataset.getDefaultModel()));
             }
         } else {
-            Resource createResource = resourceModel.createResource(resourceUri);
-            findAndPopulate(resourceUri, dataset, resourceModel, createResource);
+            resourceModel.add(findAndPopulate(resourceUri, dataset.getDefaultModel()));
 
         }
 
-        OntModel finalResource = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
+        // resourceModel.add(findAndPopulate(resourceUri, ontologyModel));
 
+        OntModel finalResource = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         StmtIterator properties = resourceModel.getResource(resourceUri).listProperties();
         while (properties.hasNext()) {
             Statement next = properties.next();
@@ -131,13 +129,18 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         return finalResource;
     }
 
-    private void findAndPopulate(String resourceUri, Dataset dataset, OntModel resourceModel, Resource createResource) {
+    private OntModel findAndPopulate(String resourceUri, Model model) {
+        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+        Model ontologyModel = super.ontologyManager.getOntologyModel();
+        resourceModel.add(ontologyModel);
+
+        Resource createResource = resourceModel.createResource(resourceUri);
         StringBuilder queryStr = new StringBuilder();
         String sparqlFragment = String.format("SELECT ?p ?o { <%s> ?p ?o} ", resourceUri);
         queryStr.append(sparqlFragment);
 
         Query query = QueryFactory.create(queryStr.toString());
-        QueryExecution qexec = QueryExecutionFactory.create(query, dataset.getDefaultModel());
+        QueryExecution qexec = QueryExecutionFactory.create(query, model);
         ResultSet results = qexec.execSelect();
 
         while (results.hasNext()) {
@@ -146,12 +149,41 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
             RDFNode rdfNode = next.get("o");
             createResource.addProperty(resourceModel.createProperty(predicate.getURI()), rdfNode);
         }
+
+        return resourceModel;
+    }
+
+    private OntModel findAndPopulate(String resourceUri, Dataset dataset) {
+        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+        Model ontologyModel = super.ontologyManager.getOntologyModel();
+        resourceModel.add(ontologyModel);
+
+        Resource createResource = resourceModel.createResource(resourceUri);
+        StringBuilder queryStr = new StringBuilder();
+        String sparqlFragment = String.format("SELECT ?p ?o { <%s> ?p ?o} ", resourceUri);
+        queryStr.append(sparqlFragment);
+
+        Query query = QueryFactory.create(queryStr.toString());
+        QueryExecution qexec = QueryExecutionFactory.create(query, dataset);
+        ResultSet results = qexec.execSelect();
+
+        while (results.hasNext()) {
+            QuerySolution next = results.next();
+            Resource predicate = next.getResource("p");
+            RDFNode rdfNode = next.get("o");
+            createResource.addProperty(resourceModel.createProperty(predicate.getURI()), rdfNode);
+        }
+
+        return resourceModel;
     }
 
     @Override
     public Model queryTDB(String rdfType, Map<String, String> propertiesAndvalues) {
         Dataset dataset = TDBFactory.createDataset(tdbDirectory);
         dataset.begin(ReadWrite.READ);
+
+        OntModel ontologyModel = super.ontologyManager.getOntologyModel();
+        ontologyModel.setStrictMode(false);
 
         JsonObject mappingConfing = this.readConfigMapping();
         int pageSize = mappingConfing.get("pageSize").getAsInt();
@@ -170,10 +202,12 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         int fetchedResources = 0;
         if (eqvClasses != null) {
             for (String eqvClass : eqvClasses) {
-                fetchedResources = fetchedResources + processResultSet(eqvClass, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
+                fetchedResources = fetchedResources + loadResourcesFromDataModel(eqvClass, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
+                fetchedResources = fetchedResources + loadResourcesFromDataModel(eqvClass, propertiesAndvalues, ontologyModel, pageSize, requestedOffset, resourceList);
             }
         } else {
-            fetchedResources = processResultSet(rdfType, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
+            fetchedResources = loadResourcesFromDataModel(rdfType, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
+            fetchedResources = loadResourcesFromDataModel(rdfType, propertiesAndvalues, ontologyModel, pageSize, requestedOffset, resourceList);
         }
 
         if (fetchedResources > 0) {
@@ -184,22 +218,23 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         }
 
         dataset.close();
+
         return resourceModel;
     }
 
-    private int processResultSet(String rdfType, Map<String, String> propertiesAndvalues, Dataset dataset, int pageSize, int requestedOffset, Resource resourceList) {
-        int resourcesFeteched = 0;
+    private int loadResourcesFromDataModel(String rdfType, Map<String, String> propertiesAndvalues, Model model, int pageSize, int requestedOffset, Resource resourceList) {
+        int resourcesFetched = 0;
         Query query;
         query = createSparql(rdfType, propertiesAndvalues, pageSize, requestedOffset);
-        QueryExecution qexec = QueryExecutionFactory.create(query, dataset);
+        QueryExecution qexec = QueryExecutionFactory.create(query, model);
         ResultSet results = qexec.execSelect();
 
         while (results.hasNext()) {
-            resourcesFeteched++;
+            resourcesFetched++;
             String uri = results.next().getResource("resource").getURI();
             Resource resource = ResourceFactory.createResource(uri);
             if (this.hasSameAs(uri)) {
-                OntModel ontologyModel = createOntologyModel();
+                OntModel ontologyModel = super.ontologyManager.getOntologyModel();
                 NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(uri), OWL.sameAs);
                 while (sameAsList.hasNext()) {
                     Resource sameAsResource = ontologyModel.createResource(sameAsList.next().toString());
@@ -209,7 +244,32 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
             resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
         }
         qexec.close();
-        return resourcesFeteched;
+        return resourcesFetched;
+    }
+
+    private int loadResourcesFromDataModel(String rdfType, Map<String, String> propertiesAndvalues, Dataset dataset, int pageSize, int requestedOffset, Resource resourceList) {
+        int resourcesFetched = 0;
+        Query query;
+        query = createSparql(rdfType, propertiesAndvalues, pageSize, requestedOffset);
+        QueryExecution qexec = QueryExecutionFactory.create(query, dataset);
+        ResultSet results = qexec.execSelect();
+
+        while (results.hasNext()) {
+            resourcesFetched++;
+            String uri = results.next().getResource("resource").getURI();
+            Resource resource = ResourceFactory.createResource(uri);
+            if (this.hasSameAs(uri)) {
+                OntModel ontologyModel = super.ontologyManager.getOntologyModel();
+                NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(uri), OWL.sameAs);
+                while (sameAsList.hasNext()) {
+                    Resource sameAsResource = ontologyModel.createResource(sameAsList.next().toString());
+                    resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), sameAsResource);
+                }
+            }
+            resourceList.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/" + "items"), resource);
+        }
+        qexec.close();
+        return resourcesFetched;
     }
 
     @Override

@@ -3,10 +3,7 @@ package br.ufsc.inf.lapesd.sddms.database;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,20 +14,24 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntModel;
-import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.OWL;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import br.ufsc.inf.lapesd.sddms.OntologyManager;
+
 public class AbstractDataBase {
+
+    @Autowired
+    protected OntologyManager ontologyManager;
 
     public Model queryTDB(String spqrql) {
         return null;
@@ -38,7 +39,7 @@ public class AbstractDataBase {
 
     public Query createSparql(String rdfType, Map<String, String> propertiesAndvalues, int pageSize, int offset) {
         List<String> objectPropertiesList = new ArrayList<>();
-        OntModel ontologyModel = createOntologyModel();
+        OntModel ontologyModel = this.ontologyManager.getOntologyModel();
         ExtendedIterator<ObjectProperty> objectProperties = ontologyModel.listObjectProperties();
         while (objectProperties.hasNext()) {
             ObjectProperty next = objectProperties.next();
@@ -95,9 +96,10 @@ public class AbstractDataBase {
     }
 
     protected Set<String> getEqvProperty(String propUri) {
-        Resource property = this.createOntologyModel().getResource(propUri);
+        Resource property = this.ontologyManager.getOntologyModel().getResource(propUri);
+
         if (property != null) {
-            NodeIterator eqvList = this.createOntologyModel().listObjectsOfProperty(property, OWL.equivalentProperty);
+            NodeIterator eqvList = this.ontologyManager.getOntologyModel().listObjectsOfProperty(property, OWL.equivalentProperty);
             Set<String> eqvProperties = new TreeSet<>();
             while (eqvList.hasNext()) {
                 eqvProperties.add(eqvList.next().toString());
@@ -108,9 +110,9 @@ public class AbstractDataBase {
     }
 
     protected Set<String> getEqvClasses(String classUri) {
-        Resource property = this.createOntologyModel().getResource(classUri);
+        Resource property = this.ontologyManager.getOntologyModel().getResource(classUri);
         if (property != null) {
-            NodeIterator eqvList = this.createOntologyModel().listObjectsOfProperty(property, OWL.equivalentClass);
+            NodeIterator eqvList = this.ontologyManager.getOntologyModel().listObjectsOfProperty(property, OWL.equivalentClass);
             Set<String> eqvClasses = new TreeSet<>();
             while (eqvList.hasNext()) {
                 eqvClasses.add(eqvList.next().toString());
@@ -118,23 +120,6 @@ public class AbstractDataBase {
             return eqvClasses;
         }
         return null;
-    }
-
-    protected OntModel createOntologyModel() {
-        JsonObject mappingConfing = this.readConfigMapping();
-        String ontologyFile = mappingConfing.get("ontologyFile").getAsString();
-        String ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
-
-        String ontologyString = null;
-        try {
-            ontologyString = new String(Files.readAllBytes(Paths.get(ontologyFile)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        model.read(new StringReader(ontologyString), null, ontologyFormat);
-        return model;
     }
 
     protected JsonObject readConfigMapping() {
@@ -150,10 +135,16 @@ public class AbstractDataBase {
     }
 
     protected boolean hasSameAs(String uri) {
-        Resource resource = this.createOntologyModel().getResource(uri);
+        Resource resource = this.ontologyManager.getOntologyModel().getResource(uri);
         if (resource != null && resource.hasProperty(OWL.sameAs)) {
             return true;
         }
         return false;
     }
+
+    @Deprecated
+    protected OntModel createOntologyModel() {
+        return this.ontologyManager.getOntologyModel();
+    }
+
 }
