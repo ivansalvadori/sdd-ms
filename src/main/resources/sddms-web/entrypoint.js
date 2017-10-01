@@ -145,8 +145,6 @@ loadList = function(url) {
 }
 
 addResourceToList = function(itemsDiv, item, itemCount) {
-	;
-
 	itemLabel = item.substring(item.length - 40, item.length)
 	itemPanel = '<div class="panel-heading" role="tab" >'
 			+ '<h4 class="panel-title">'
@@ -280,10 +278,23 @@ loadOntologyProperties = function(propertyName) {
 													+ propCount
 													+ '">'
 													+ '</div>' + '</div>';
-
 											propCount++;
-
-											$("#divOntologyPropertyList")
+											$("#divOntologyDataPropertyList")
+													.append(html)
+										}
+										if (element["@type"] == "owl:ObjectProperty") {
+											var html = '<div class="form-group col-xs-12">'
+													+ '<div class="input-group">	'
+													+ '<div class="input-group-addon"> <span class="ontologyPropertyId" style="font-size:10px;" for="inputTextOntologyProperty'
+													+ propCount
+													+ '">'
+													+ element["@id"]
+													+ '</span> </div> <input type="text" class="form-control" id="inputTextOntologyProperty'
+													+ propCount
+													+ '">'
+													+ '</div>' + '</div>';
+											propCount++;
+											$("#divOntologyObjectPropertyList")
 													.append(html)
 										}
 									});
