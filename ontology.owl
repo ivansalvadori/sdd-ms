@@ -4,74 +4,25 @@
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix api:   <http://www.public-security-ontology/> .
 
-api:localDaOcorrencia
-        a              owl:ObjectProperty ;
-        owl:inverseOf  api:possuiBoletimOcorrencia .
+<http://www.ssp.sp.gov.br/transparenciassp/C5E1F4F19D77A2031BFC1F57E467DEA655E1D8FA74BC115CB052841AEFA0846C>
+        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/FE7320F3EAB31EE40831445742AE5ABF84BF35FAE1901554DCF6F0BE7ECA0B16> .
 
-<http://www.ssp.sp.gov.br/transparenciassp/BDFACA08BE9C388B0B4490D711FD4EC856467646>
-        owl:sameAs  <http://babbage.tk.jku.at:40000/sddms/resource?uri=504EB4EFD6C3FC820188E3D0A1423EE175CE58DEF97240E5A239818D9A524A9A> .
+api:hasLocation  a              owl:ObjectProperty ;
+        owl:equivalentProperty  api:xavinha .
 
-api:numeroOcorrencia  a  owl:DatatypeProperty .
+api:xavinha  a  owl:ObjectProperty .
 
-api:veiculoFurtado  a           owl:ObjectProperty ;
-        owl:equivalentProperty  api:bosta ;
-        owl:inverseOf           api:possuiBoletimOcorrencia .
+api:reportNumber  a  owl:DatatypeProperty .
 
-api:bosta  a    owl:ObjectProperty .
+api:TheftAutoReport  a  owl:Class .
 
-api:BO  a                    owl:Class ;
-        owl:equivalentClass  api:BoletimOcorrenciaFurtoVeiculo .
+api:Address  a  owl:Class .
 
-[ a            owl:Ontology ;
-  owl:imports  <http://babbage.tk.jku.at:40000/sddms/resource?uri=504EB4EFD6C3FC820188E3D0A1423EE175CE58DEF97240E5A239818D9A524A9A>
-] .
+api:StolenVehicule  a  owl:Class .
 
-api:saopaulo  a  api:Cidade .
+api:cityName  a  owl:DatatypeProperty .
 
-api:GeoLocalizacao  a  owl:Class .
+api:City  a     owl:Class .
 
-api:idBO  a                     owl:DatatypeProperty ;
-        owl:equivalentProperty  api:numeroOcorrencia .
-
-api:praca  a                    owl:DatatypeProperty ;
-        owl:equivalentProperty  api:placa .
-
-api:licensePlate  a             owl:DatatypeProperty ;
-        owl:equivalentProperty  api:placa .
-
-api:tipoVeiculo  a  owl:DatatypeProperty .
-
-api:Cidade  a   owl:Class .
-
-api:CarroRoubado  a          owl:Class ;
-        owl:equivalentClass  api:VeiculoFurtado , api:StolenVehicule .
-
-<http://babbage.tk.jku.at:40000/sddms/resource?uri=504EB4EFD6C3FC820188E3D0A1423EE175CE58DEF97240E5A239818D9A524A9A>
-        a                       api:StolenVehicule , api:VeiculoFurtado ;
-        api:color               "Prata" ;
-        api:hasTheftAutoReport  <http://babbage.tk.jku.at:40000/sddms/resource?uri=C6937C5AFCEB1EED04EFBD08A15C580B13B7AFBE1ACC76EDC29E706DF1469F57> ;
-        api:licensePlate        "DBQ5416" ;
-        api:licensedIn          <http://babbage.tk.jku.at:40000/sddms/resource?uri=F2E22A2EBD85870C535DD3A70FA0EA69A22F5CD46066BDA90F4DCF01C6B644A7> ;
-        api:model               "GM/CORSA WIND" ;
-        api:referenceModelYear  "2000" ;
-        api:typeOfVehicule      "AUTOMOVEL" ;
-        api:year                "2000" .
-
-api:LocalDaOcorrencia
-        a       owl:Class .
-
-api:possuiBoletimOcorrencia
-        a       owl:ObjectProperty .
-
-api:VeiculoFurtado  a  owl:Class .
-
-api:placa  a    owl:DatatypeProperty .
-
-api:BoletimOcorrenciaFurtoVeiculo
-        a       owl:Class .
-
-api:periodoOcorrencia
-        a       owl:DatatypeProperty .
-
-api:UmCarroRoubado  a  <http://www.public-security-ontology/api:VeiculoFurtado> ;
-        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/941E59B8FA1412F4A39A052B082A0CC311713AF5> .
+api:CriminalReport  a        owl:Class ;
+        owl:equivalentClass  api:TheftAutoReport .

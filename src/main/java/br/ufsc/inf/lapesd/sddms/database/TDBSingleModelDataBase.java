@@ -1,5 +1,6 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,9 +60,11 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
 
     @Override
     public void resetDataset() {
+        removeTdbFolderIfExists();
     }
 
     private void persit(Model model) {
+        resetDataset();
         Dataset dataset = TDBFactory.createDataset(tdbDirectory);
         dataset.begin(ReadWrite.WRITE);
         Model tdbDefaultModel = dataset.getDefaultModel();
@@ -270,6 +273,23 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         }
         qexec.close();
         return resourcesFetched;
+    }
+
+    private void removeTdbFolderIfExists() {
+        File folder = new File("tdb");
+        String[] entries = folder.list();
+
+        if (entries == null) {
+            return;
+        }
+
+        for (String s : entries) {
+            File currentFile = new File(folder.getPath(), s);
+            currentFile.delete();
+        }
+        folder.delete();
+        File index = new File("index.db");
+        index.delete();
     }
 
     @Override

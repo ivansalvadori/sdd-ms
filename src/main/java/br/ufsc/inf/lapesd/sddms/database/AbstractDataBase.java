@@ -59,13 +59,24 @@ public class AbstractDataBase {
         for (String prop : properties) {
             Set<String> eqvProperties = this.getEqvProperty(prop);
             String propertyValue = propertiesAndvalues.get(prop);
-            if (eqvProperties == null) {
+            if (eqvProperties == null || eqvProperties.isEmpty()) {
                 String sparqlFragment = "?resource <%s> \"%s\"  . \n";
                 if (objectPropertiesList.contains(prop)) {
-                    sparqlFragment = "?resource <%s> <%s>  . \n";
+                    sparqlFragment = "{ ?resource <%s> <%s> } ";
+                    sparqlFragment = String.format(sparqlFragment, prop, propertyValue);
+                    queryStr.append(sparqlFragment);
+
+                    if (this.hasSameAs(propertyValue)) {
+                        NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(propertyValue), OWL.sameAs);
+                        while (sameAsList.hasNext()) {
+                            sparqlFragment = " UNION { ?resource <%s> <%s> } ";
+                            sparqlFragment = String.format(sparqlFragment, prop, sameAsList.next());
+                            queryStr.append(sparqlFragment);
+                        }
+                        sparqlFragment = " . \n";
+                        queryStr.append(sparqlFragment);
+                    }
                 }
-                sparqlFragment = String.format(sparqlFragment, prop, propertyValue);
-                queryStr.append(sparqlFragment);
             } else {
                 String sparqlFragment = "?resource <%s>";
                 sparqlFragment = String.format(sparqlFragment, prop);
@@ -79,6 +90,9 @@ public class AbstractDataBase {
                 sparqlFragment = "\"%s\"  . \n";
                 if (objectPropertiesList.contains(prop)) {
                     sparqlFragment = " <%s>  . \n";
+                    if (this.hasSameAs(propertyValue)) {
+                        // TODO: not implemented yet
+                    }
                 }
                 sparqlFragment = String.format(sparqlFragment, propertyValue);
                 queryStr.append(sparqlFragment);
