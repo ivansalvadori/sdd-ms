@@ -76,6 +76,11 @@ public class AbstractDataBase {
                         sparqlFragment = " . \n";
                         queryStr.append(sparqlFragment);
                     }
+                } else {
+                    sparqlFragment = "{ ?resource <%s> \"%s\" } ";
+                    sparqlFragment = String.format(sparqlFragment, prop, propertyValue);
+                    queryStr.append(sparqlFragment);
+
                 }
             } else {
                 String sparqlFragment = "?resource <%s>";
