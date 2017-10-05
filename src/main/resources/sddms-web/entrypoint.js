@@ -160,55 +160,83 @@ addResourceToList = function(itemsDiv, item, itemCount) {
 }
 
 loadResource = function(url, divtorender, contentType) {
-	$.ajax({
-		url : url,
-		type : 'GET',
-		async : true,
-		contentType : contentType,
-		beforeSend : function(req) {
-			req.setRequestHeader("Accept", "application/ld+json");
-		},
-		success : function(resource) {
-			resourceContent = "";
-			if (!resource["@context"]) {
-				resourceContent = loadResourceHtmlRepresentation(url);
-			} else {
+	$("#" + divtorender).empty();
+	$
+			.ajax({
+				url : url,
+				type : 'GET',
+				async : true,
+				contentType : contentType,
+				beforeSend : function(req) {
+					req
+							.setRequestHeader("Accept",
+									"text/html;q=0.9, application/ld+json;q=0.8, */*;q=0.8");
+				},
+				success : function(resource) {
+					resourceContent = "";
+					if (!resource["@context"]) {
+						inserHtmlRepresentation(resource);
+					} else {
+						$
+								.each(
+										resource,
+										function(key, element) {
+											if (key != "@context"
+													&& resource["@context"]) {
+												contextOfKey = resource["@context"][key];
+												if (resource["@context"][key]
+														&& contextOfKey["@type"]
+														&& contextOfKey["@type"] == "@id") {
 
-				$.each(resource, function(key, element) {
-					if (key != "@context" && resource["@context"]) {
-						contextOfKey = resource["@context"][key];
-						if (resource["@context"][key] && contextOfKey["@type"]
-								&& contextOfKey["@type"] == "@id") {
+													if (!Array.isArray(element)) {
+														resourceContent = resourceContent
+																+ createLink(
+																		key,
+																		element)
+													} else {
+														$
+																.each(
+																		element,
+																		function(
+																				index,
+																				element) {
+																			resourceContent = resourceContent
+																					+ createLink(
+																							key,
+																							element);
+																		});
+													}
 
-							if (!Array.isArray(element)) {
-								resourceContent = resourceContent
-										+ createLink(key, element)
-							} else {
-								$.each(element, function(index, element) {
-									resourceContent = resourceContent
-											+ createLink(key, element);
-								});
-							}
-
-						} else {
-							resourceContent = resourceContent + "<b>" + key
-									+ ":</b> " + element + "<br>";
-						}
+												} else {
+													if (element instanceof Object) {
+														resourceContent = resourceContent
+																+ "<b>"
+																+ key
+																+ ":</b> "
+																+ JSON.stringify(element)
+																+ "<br>";
+													} else {
+														resourceContent = resourceContent
+																+ "<b>"
+																+ key
+																+ ":</b> "
+																+ element
+																+ "<br>";
+													}
+												}
+											}
+										});
+						$("#" + divtorender).html(resourceContent)
+						addListenerResourceLinkClicked();
+						$("#" + divtorender).removeClass("hidden")
+						$(".loadingIcon").remove();
 					}
-				});
+				},
+				error : function() {
+					inserHtmlRepresentation("<b>It was not possible to load this resource</b>")
+				}
 
-			}
-
-			$("#" + divtorender).html(resourceContent)
-			addListenerResourceLinkClicked();
-			$("#" + divtorender).removeClass("hidden")
-			$(".loadingIcon").remove();
-		},
-		error : function() {
-			resourceContent = loadResourceHtmlRepresentation(url, divtorender);
-		}
-
-	});
+			});
 
 	loadResourceHtmlRepresentation = function(url) {
 		$.ajax({
@@ -217,7 +245,7 @@ loadResource = function(url, divtorender, contentType) {
 			async : false,
 			contentType : contentType,
 			beforeSend : function(req) {
-				req.setRequestHeader("Accept", "text/html");
+				req.setRequestHeader("Accept", "text/html;q=0.9, */*;q=0.8");
 			},
 			success : function(resource) {
 				$("#" + divtorender).html(resource)
@@ -225,11 +253,21 @@ loadResource = function(url, divtorender, contentType) {
 				$("#" + divtorender).removeClass("hidden")
 				$(".loadingIcon").remove();
 			},
-			error : function() {
-
+			error : function(resource) {
+				$("#" + divtorender).html(resource)
+				addListenerResourceLinkClicked();
+				$("#" + divtorender).removeClass("hidden")
+				$(".loadingIcon").remove();
 			}
 
 		});
+	}
+
+	inserHtmlRepresentation = function(resource) {
+		$("#" + divtorender).html(resource)
+		addListenerResourceLinkClicked();
+		$("#" + divtorender).removeClass("hidden")
+		$(".loadingIcon").remove();
 	}
 
 	createLink = function(key, element) {

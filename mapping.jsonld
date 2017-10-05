@@ -1,113 +1,43 @@
 {
-      "@context": {
-            "@type": "http://www.public-security-ontology/TheftAutoReport",
+     "@context": {
+            "@type": "http://www.public-security-ontology/TheftAutoReport", 
             "@uriProperty": [
                   "NUMERO_BOLETIM",
-                  "DELEGACIA_NOME",
-                  "DELEGACIA_CIRCUNSCRICAO"
-            ],
+                  "DELEGACIA_NOME"
+            ], 
             "NUMERO_BOLETIM": "http://www.public-security-ontology/reportNumber",
             "DATAOCORRENCIA": "http://www.public-security-ontology/date",
             "ANO_BO": "http://www.public-security-ontology/year",
             "PERIDOOCORRENCIA": "http://www.public-security-ontology/timeOfDay",
             "DELEGACIA_NOME": "http://www.public-security-ontology/policeStationName",
-            "DELEGACIA_CIRCUNSCRICAO": "http://www.public-security-ontology/jurisdiction",
-            "FLAGRANTE": "http://www.public-security-ontology/flagrant",
-            "NUMERO_BOLETIM_PRINCIPAL": "http://www.public-security-ontology/primaryReportNumber",
-            "SOLUCAO": "http://www.public-security-ontology/result",
-            "ESPECIE": "http://www.public-security-ontology/clauseName",
-            "RUBRICA": "http://www.public-security-ontology/clauseDescription",
-            "http://www.public-security-ontology/hasVehicule": {
-                  "@type": "http://www.public-security-ontology/StolenVehicule",
+            "PLACA_VEICULO": "http://www.public-security-ontology/licensePlate",
+            "DESCR_COR_VEICULO": "http://www.public-security-ontology/color",
+            "DESCR_MARCA_VEICULO": "http://www.public-security-ontology/model",
+            "ANO_FABRICACAO": "http://www.public-security-ontology/year",
+            "DESCR_TIPO_VEICULO": "http://www.public-security-ontology/typeOfVehicule",
+	    "http://www.public-security-ontology/hasLocation": {
+                  "@type": "http://www.public-security-ontology/City",
                   "@uriProperty": [
-                        "PLACA_VEICULO"
+                        "CIDADE",
+                        "UF"
                   ],
-                  "PLACA_VEICULO": "http://www.public-security-ontology/licensePlate",
-                  "DESCR_COR_VEICULO": "http://www.public-security-ontology/color",
-                  "DESCR_MARCA_VEICULO": "http://www.public-security-ontology/model",
-                  "ANO_FABRICACAO": "http://www.public-security-ontology/year",
-                  "ANO_MODELO": "http://www.public-security-ontology/referenceModelYear",
-                  "DESCR_TIPO_VEICULO": "http://www.public-security-ontology/typeOfVehicule",
-                  "http://www.public-security-ontology/licensedIn": {
-                        "@type": "http://www.public-security-ontology/City",
-                        "@uriProperty": [
-                              "UF_VEICULO",
-                              "CIDADE_VEICULO"
-                        ],
-                        "CIDADE_VEICULO": "http://www.public-security-ontology/cityName",
-                        "UF_VEICULO": "http://www.public-security-ontology/estateName"
-                  }
-            },
-            "http://www.public-security-ontology/hasLocation": [
-                  {
-                        "@type": "http://www.public-security-ontology/City",
-                        "@uriProperty": [
-                              "UF",
-                              "CIDADE"
-                        ],
-                        "CIDADE": "http://www.public-security-ontology/cityName",
-                        "UF": "http://www.public-security-ontology/estateName"
-                  },
-                  {
-                        "@type": "http://www.public-security-ontology/Address",
-                        "@uriProperty": [
-                              "BAIRRO",
-                              "LOGRADOURO",
-                              "UF",
-                              "CIDADE"
-                        ],
-                        "LOGRADOURO": "http://www.public-security-ontology/streetAddress",
-                        "BAIRRO": "http://www.public-security-ontology/regionName",
-                        "DESCRICAOLOCAL": "http://www.public-security-ontology/typeOfAddress",
-                        "http://www.public-security-ontology/locatedIn": {
-                              "@type": "http://www.public-security-ontology/City",
-                              "@uriProperty": [
-                                    "UF",
-                                    "CIDADE"
-                              ],
-                              "CIDADE": "http://www.public-security-ontology/cityName",
-                              "UF": "http://www.public-security-ontology/estateName"
-                        },
-                        "http://www.public-security-ontology/hasTheftAutoReport": {
-                              "@type": "http://www.public-security-ontology/TheftAutoReport",
-                              "@uriProperty": [
-                                    "NUMERO_BOLETIM",
-                                    "DELEGACIA_NOME",
-                                    "DELEGACIA_CIRCUNSCRICAO"
-                              ]
-                        }
-                  },
-                  {
-                        "@type": "http://www.public-security-ontology/GeoLocation",
-                        "@uriProperty": [
-                              "LATITUDE",
-                              "LONGITUDE"
-                        ],
-                        "LATITUDE": "http://www.public-security-ontology/latitude",
-                        "LONGITUDE": "http://www.public-security-ontology/longitude",
-                        "http://www.public-security-ontology/hasEvent": {
-                              "@type": "http://www.public-security-ontology/TheftAutoReport",
-                              "@uriProperty": [
-                                    "NUMERO_BOLETIM",
-                                    "DELEGACIA_NOME",
-                                    "DELEGACIA_CIRCUNSCRICAO"
-                              ]
-                        }
-                  }
-            ]
+                  "CIDADE": "http://www.public-security-ontology/cityName",
+                  "UF": "http://www.public-security-ontology/estateName"
+            }
       },
       "@configuration": {
             "rdfFolder": "rdf/",
             "csvSeparator": "TAB",
             "csvEncode": "UTF-8",
-            "ontologyFile": "ontology.owl",
-            "csvFilesFolder": "data",
+            "ontologyFile": "ontologia.owl",
+            "csvFilesFolder": "data", 
             "prefix": "http://www.ssp.sp.gov.br/transparenciassp/",
             "ontologyFormat": "N3",
+            "importExternalWebResources": true,
             "singleRdfOutputFile": true,
             "resourcesPerFile": 250,
             "enableInference": false,
             "mergeModelFactor": 500,
-            "pageSize": 90
+            "pageSize": 10
       }
 }

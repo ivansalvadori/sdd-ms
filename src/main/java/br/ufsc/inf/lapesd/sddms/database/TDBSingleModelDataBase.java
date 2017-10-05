@@ -26,6 +26,8 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.tdb.TDBFactory;
 import org.apache.jena.vocabulary.OWL;
 
@@ -112,7 +114,18 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         if (this.hasSameAs(resourceUri)) {
             NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(resourceUri), OWL.sameAs);
             while (sameAsList.hasNext()) {
-                resourceModel.add(findAndPopulate(sameAsList.next().toString(), dataset.getDefaultModel()));
+                RDFNode next = sameAsList.next();
+                String prefix = readConfigMapping().get("prefix").getAsString();
+                boolean importExternalWebResources = readConfigMapping().get("importExternalWebResources").getAsBoolean();
+                if (!next.toString().contains(prefix) && importExternalWebResources) {
+                    try {
+                        RDFDataMgr.read(resourceModel, next.toString(), Lang.RDFXML);
+                    } catch (Exception e) {
+                        resourceModel.add(findAndPopulate(next.toString(), dataset.getDefaultModel()));
+                    }
+                } else {
+                    resourceModel.add(findAndPopulate(next.toString(), dataset.getDefaultModel()));
+                }
             }
         } else {
             resourceModel.add(findAndPopulate(resourceUri, dataset.getDefaultModel()));

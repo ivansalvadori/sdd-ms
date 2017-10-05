@@ -96,4 +96,8 @@ public class OntologyManager {
         return ontologyModel;
     }
 
+    public void importToOntology(String uri) {
+        RDFDataMgr.read(this.ontologyModel, uri);
+    }
+
 }

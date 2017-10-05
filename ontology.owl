@@ -4,13 +4,12 @@
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix api:   <http://www.public-security-ontology/> .
 
-<http://www.ssp.sp.gov.br/transparenciassp/C5E1F4F19D77A2031BFC1F57E467DEA655E1D8FA74BC115CB052841AEFA0846C>
-        owl:sameAs  <http://www.ssp.sp.gov.br/transparenciassp/FE7320F3EAB31EE40831445742AE5ABF84BF35FAE1901554DCF6F0BE7ECA0B16> .
-
 api:hasLocation  a              owl:ObjectProperty ;
         owl:equivalentProperty  api:xavinha .
 
 api:xavinha  a  owl:ObjectProperty .
+
+api:neime  a    owl:DatatypeProperty .
 
 api:reportNumber  a  owl:DatatypeProperty .
 
@@ -20,7 +19,8 @@ api:Address  a  owl:Class .
 
 api:StolenVehicule  a  owl:Class .
 
-api:cityName  a  owl:DatatypeProperty .
+api:cityName  a                 owl:DatatypeProperty ;
+        owl:equivalentProperty  api:neime .
 
 api:City  a     owl:Class .
 

@@ -90,7 +90,7 @@ public class ResourcesEndpoint {
 
     @GET
     @Path("/resources")
-    @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
+    @Produces({ "application/n-quads", "application/ld+json;qs=1", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
     public Response queryResources(@QueryParam("uriClass") String uriClass, @QueryParam("sddms:pageId") String pageId) {
         Map<String, String> propertyValues = new HashMap<>();
         MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
@@ -140,7 +140,7 @@ public class ResourcesEndpoint {
 
     @GET
     @Path("/resource")
-    @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
+    @Produces({ "application/n-quads;qs=0.8", "application/ld+json;qs=1", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
     public Response listAllResources(@QueryParam("uri") String uri) {
         Model resource = dataManager.getResource(this.dataManager.getResourcePrefix() + uri);
         Resource renamedResource = ResourceUtils.renameResource(resource.getResource(uri), uriInfo.getRequestUri().toString());
