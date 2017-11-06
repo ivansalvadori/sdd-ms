@@ -1,6 +1,7 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -214,10 +215,13 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         Resource resourceListType = resourceModel.createResource("https://www.w3.org/ns/hydra/core#" + "Collection");
         Resource resourceList = resourceModel.createResource("http://sddms.com.br/ontology/" + "ResourceList", resourceListType);
 
-        Set<String> eqvClasses = super.getEqvClasses(rdfType);
+        Set<String> eqvAndSuperClasses = new HashSet<>();
+        eqvAndSuperClasses.addAll(super.getEqvClasses(rdfType));
+        eqvAndSuperClasses.addAll(super.getSuperClasses(rdfType));
+
         int fetchedResources = 0;
-        if (eqvClasses != null) {
-            for (String eqvClass : eqvClasses) {
+        if (!eqvAndSuperClasses.isEmpty()) {
+            for (String eqvClass : eqvAndSuperClasses) {
                 fetchedResources = fetchedResources + loadResourcesFromDataModel(eqvClass, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
                 fetchedResources = fetchedResources + loadResourcesFromDataModel(eqvClass, propertiesAndvalues, ontologyModel, pageSize, requestedOffset, resourceList);
             }
@@ -225,6 +229,8 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
             fetchedResources = loadResourcesFromDataModel(rdfType, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
             fetchedResources = loadResourcesFromDataModel(rdfType, propertiesAndvalues, ontologyModel, pageSize, requestedOffset, resourceList);
         }
+
+        fetchedResources = processRestrictions(rdfType, propertiesAndvalues);
 
         if (fetchedResources > 0) {
             resourceList.addProperty(ResourceFactory.createProperty("https://www.w3.org/ns/hydra/core#" + "next"), "sddms:pageId=" + (requestedOffset + 1));
@@ -236,6 +242,12 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         dataset.close();
 
         return resourceModel;
+    }
+
+    private int processRestrictions(String rdfType, Map<String, String> propertiesAndvalues) {
+        super.getRestrictions(rdfType);
+
+        return 0;
     }
 
     private int loadResourcesFromDataModel(String rdfType, Map<String, String> propertiesAndvalues, Model model, int pageSize, int requestedOffset, Resource resourceList) {

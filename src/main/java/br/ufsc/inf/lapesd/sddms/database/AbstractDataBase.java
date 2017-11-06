@@ -13,14 +13,24 @@ import java.util.TreeSet;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.ObjectProperty;
+import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
+import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.ontology.OntProperty;
+import org.apache.jena.ontology.Restriction;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.OWL;
+import org.apache.jena.vocabulary.OWL2;
+import org.apache.jena.vocabulary.RDFS;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonObject;
@@ -138,6 +148,52 @@ public class AbstractDataBase {
             }
             return eqvClasses;
         }
+        return null;
+    }
+
+    protected Set<String> getSuperClasses(String classUri) {
+        Resource property = this.ontologyManager.getOntologyModel().getResource(classUri);
+        if (property != null) {
+            NodeIterator superList = this.ontologyManager.getOntologyModel().listObjectsOfProperty(property, RDFS.subClassOf);
+            Set<String> superClasses = new TreeSet<>();
+            while (superList.hasNext()) {
+                superClasses.add(superList.next().toString());
+            }
+            return superClasses;
+        }
+        return null;
+    }
+
+    protected Set<String> getRestrictions(String classUri) {
+        ExtendedIterator<Restriction> listRestrictions = this.ontologyManager.getOntologyModel().listRestrictions();
+        while (listRestrictions.hasNext()) {
+            Restriction restriction = listRestrictions.next();
+            OntProperty onProperty = restriction.getOnProperty();
+            RDFNode propertyValue = restriction.getPropertyValue(OWL2.hasValue);
+            // System.out.println(onProperty);
+            // System.out.println(propertyValue);
+
+        }
+
+        OntClass ontoClass = this.ontologyManager.getOntologyModel().getOntClass(classUri);
+
+        ExtendedIterator<OntClass> listEquivalentClasses = ontoClass.listEquivalentClasses();
+        while (listEquivalentClasses.hasNext()) {
+            OntClass next = listEquivalentClasses.next();
+            if (next != null) {
+                boolean intersectionClass = next.isIntersectionClass();
+                if (intersectionClass) {
+                    OntModel restrictionClassModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
+                    StmtIterator listProperties = next.listProperties();
+                    while (listProperties.hasNext()) {
+                        Statement next2 = listProperties.next();
+                        System.out.println(next2);
+                    }
+
+                }
+            }
+        }
+
         return null;
     }
 
