@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +31,6 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.OWL2;
-import org.apache.jena.vocabulary.RDFS;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonObject;
@@ -151,15 +151,16 @@ public class AbstractDataBase {
         return null;
     }
 
-    protected Set<String> getSuperClasses(String classUri) {
-        Resource property = this.ontologyManager.getOntologyModel().getResource(classUri);
-        if (property != null) {
-            NodeIterator superList = this.ontologyManager.getOntologyModel().listObjectsOfProperty(property, RDFS.subClassOf);
-            Set<String> superClasses = new TreeSet<>();
-            while (superList.hasNext()) {
-                superClasses.add(superList.next().toString());
+    protected Set<String> getSubClasses(String classUri) {
+        Set<String> subClasses = new HashSet<>();
+        OntClass ontClass = this.ontologyManager.getOntologyModel().getOntClass(classUri);
+        boolean hasSubClass = ontClass.hasSubClass();
+        if (ontClass != null && hasSubClass) {
+            List<OntClass> subOntClasses = ontClass.listSubClasses().toList();
+            for (OntClass classe : subOntClasses) {
+                subClasses.add(classe.getURI());
             }
-            return superClasses;
+            return subClasses;
         }
         return null;
     }
@@ -220,6 +221,10 @@ public class AbstractDataBase {
     @Deprecated
     protected OntModel createOntologyModel() {
         return this.ontologyManager.getOntologyModel();
+    }
+
+    public void setOntologyManager(OntologyManager ontologyManager) {
+        this.ontologyManager = ontologyManager;
     }
 
 }

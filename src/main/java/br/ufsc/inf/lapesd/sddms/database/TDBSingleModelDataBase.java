@@ -215,13 +215,13 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         Resource resourceListType = resourceModel.createResource("https://www.w3.org/ns/hydra/core#" + "Collection");
         Resource resourceList = resourceModel.createResource("http://sddms.com.br/ontology/" + "ResourceList", resourceListType);
 
-        Set<String> eqvAndSuperClasses = new HashSet<>();
-        eqvAndSuperClasses.addAll(super.getEqvClasses(rdfType));
-        eqvAndSuperClasses.addAll(super.getSuperClasses(rdfType));
+        Set<String> eqvAndSubClasses = new HashSet<>();
+        eqvAndSubClasses.addAll(super.getEqvClasses(rdfType));
+        eqvAndSubClasses.addAll(super.getSubClasses(rdfType));
 
         int fetchedResources = 0;
-        if (!eqvAndSuperClasses.isEmpty()) {
-            for (String eqvClass : eqvAndSuperClasses) {
+        if (!eqvAndSubClasses.isEmpty()) {
+            for (String eqvClass : eqvAndSubClasses) {
                 fetchedResources = fetchedResources + loadResourcesFromDataModel(eqvClass, propertiesAndvalues, dataset, pageSize, requestedOffset, resourceList);
                 fetchedResources = fetchedResources + loadResourcesFromDataModel(eqvClass, propertiesAndvalues, ontologyModel, pageSize, requestedOffset, resourceList);
             }
