@@ -46,7 +46,8 @@ public class OntoloyEndpoint {
         String modelString = out.toString();
 
         String path = uriInfo.getBaseUri() + "resource?uri=";
-        String modelStringReplaced = modelString.replace(this.dataManager.getResourcePrefix(), path);
+        String resourcePrefix = this.dataManager.getResourcePrefix();
+        String modelStringReplaced = modelString.replace(resourcePrefix, path);
 
         ontologyModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         ontologyModel.read(new StringReader(modelStringReplaced), null, Lang.TURTLE.getName());

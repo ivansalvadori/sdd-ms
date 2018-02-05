@@ -4,40 +4,11 @@
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix api:   <http://www.public-security-ontology/> .
 
-api:xavinha  a  owl:ObjectProperty .
-
-api:hasLocation  a              owl:ObjectProperty ;
-        owl:equivalentProperty  api:xavinha .
-
-api:ReportCarroRoubado
-        a                    owl:Class ;
-        owl:equivalentClass  [ a                   owl:Class ;
-                               owl:intersectionOf  ( <http://www.public-security-ontologyTheftAutoReport>
-                                                     [ a               owl:Restriction ;
-                                                       owl:hasValue    "AUTOMOVEL" ;
-                                                       owl:onProperty  api:typeOfVehicule
-                                                     ]
-                                                     [ a               owl:Restriction ;
-                                                       owl:hasValue    "MOTO" ;
-                                                       owl:onProperty  api:licencePlate
-                                                     ]
-                                                   )
-                             ] .
-
-api:neime  a    owl:DatatypeProperty .
-
-api:reportNumber  a  owl:DatatypeProperty .
 
 api:TheftAutoReport  a  owl:Class .
+api:CriminalReport  a  owl:Class .
+api:TheftAutoReport rdfs:subClassOf api:CriminalReport .
 
-api:Address  a  owl:Class .
-
-api:StolenVehicule  a  owl:Class .
-
-api:cityName  a                 owl:DatatypeProperty ;
-        owl:equivalentProperty  api:neime .
-
-api:City  a     owl:Class .
-
-api:CriminalReport  a        owl:Class ;
-        owl:equivalentClass  api:TheftAutoReport .
+api:timeOfDay a owl:DatatypeProperty .
+api:periodOfDay a owl:DatatypeProperty .
+api:periodOfDay owl:equivalentProperty api:timeOfDay .

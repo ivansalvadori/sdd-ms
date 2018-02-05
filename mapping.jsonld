@@ -115,14 +115,15 @@
             "csvSeparator": "TAB",
             "csvEncode": "UTF-8",
             "ontologyFile": "ontology.owl",
-            "csvFilesFolder": "boletins/furto-veiculos/utf8-csv-files/",
+            "csvFilesFolder": "data/",
             "prefix": "http://www.ssp.sp.gov.br/transparenciassp/",
             "ontologyFormat": "N3",
             "singleRdfOutputFile": true,
             "resourcesPerFile": 250,
             "enableInference": false,
             "mergeModelFactor": 500,
-            "pageSize": 25,
-            "importExternalWebResources": true
+            "pageSize": 3000,
+            "importExternalWebResources": true,
+            "inMemoryModelSize": 100
       }
 }

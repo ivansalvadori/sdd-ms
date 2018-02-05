@@ -126,7 +126,7 @@
 			<groupId>br.ufsc.inf.lapesd</groupId>
 			<artifactId>csv2rdf</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
+		</dependency> 
 
 		<dependency>
 			<groupId>org.mapdb</groupId>
