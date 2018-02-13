@@ -15,13 +15,13 @@ import javax.ws.rs.core.Response;
 
 import org.springframework.stereotype.Component;
 
-@Path("config")
+@Path("mapping")
 @Component
-public class ConfigEndpoint {
+public class MappingEndpoint {
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public Response loadOntology() {
+    public Response loadMapping() {
         String configString = null;
         try {
             configString = new String(Files.readAllBytes(Paths.get("mapping.jsonld")));
@@ -33,7 +33,7 @@ public class ConfigEndpoint {
 
     @POST
     @Consumes(MediaType.TEXT_PLAIN)
-    public Response saveOntology(String config) {
+    public Response saveMapping(String config) {
         try (FileWriter fostream = new FileWriter("mapping.jsonld", false);) {
             fostream.write(config);
         } catch (Exception e) {

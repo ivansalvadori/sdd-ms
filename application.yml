@@ -1,3 +1,8 @@
 server.port: 8089
 config:
   persistenceType: "TdbSingleModel"
+  tdbPath: C:\Users\ivan_\Documents\diaas-exp\dataset2\tdb
+  ontologyFile: C:\Users\ivan_\Documents\diaas-exp\dataset2\ontology.owl
+  ontologyFormat: "N3"
+  managedUri: "http://www.ssp.sp.gov.br/transparenciassp/"
+  importExternalWebResources: false

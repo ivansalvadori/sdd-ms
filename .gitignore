@@ -21,3 +21,4 @@ rdf-files
 *.iml
 *.idea
 /index.db
+/ontology2.owl

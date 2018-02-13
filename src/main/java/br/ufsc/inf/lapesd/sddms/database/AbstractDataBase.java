@@ -1,9 +1,5 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -11,8 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
@@ -34,7 +28,6 @@ import org.apache.jena.vocabulary.OWL2;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import br.ufsc.inf.lapesd.sddms.OntologyManager;
 
@@ -198,18 +191,6 @@ public class AbstractDataBase {
         return null;
     }
 
-    protected JsonObject readConfigMapping() {
-        try (FileInputStream inputStream = FileUtils.openInputStream(new File("mapping.jsonld"))) {
-            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
-            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
-            JsonObject mappingConfing = mappingJsonObject.get("@configuration").getAsJsonObject();
-            return mappingConfing;
-
-        } catch (IOException e) {
-            throw new RuntimeException("Mapping file not found");
-        }
-    }
-
     protected boolean hasSameAs(String uri) {
         Resource resource = this.ontologyManager.getOntologyModel().getResource(uri);
         if (resource != null && resource.hasProperty(OWL.sameAs)) {
@@ -221,6 +202,12 @@ public class AbstractDataBase {
     @Deprecated
     protected OntModel createOntologyModel() {
         return this.ontologyManager.getOntologyModel();
+    }
+
+    @Deprecated
+    protected JsonObject readConfigMapping() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     public void setOntologyManager(OntologyManager ontologyManager) {

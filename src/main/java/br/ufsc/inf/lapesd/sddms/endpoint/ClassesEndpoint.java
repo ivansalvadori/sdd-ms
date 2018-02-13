@@ -21,22 +21,22 @@ import org.apache.jena.util.ResourceUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import br.ufsc.inf.lapesd.sddms.DataManager;
+import br.ufsc.inf.lapesd.sddms.OntologyManager;
 
 @Path("classes")
 @Component
 public class ClassesEndpoint {
 
-    @Autowired
-    private DataManager dataManager;
-
     @Context
     private UriInfo uriInfo;
+
+    @Autowired
+    private OntologyManager ontologyManager;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response listAllManagedClasses() {
-        List<String> allManagedSemanticClasses = dataManager.getAllManagedSemanticClasses();
+        List<String> allManagedSemanticClasses = ontologyManager.listAllClasses();
 
         InfModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
         Resource apiDocType = resourceModel.createResource("https://www.w3.org/ns/hydra/core#" + "ApiDocumentation");

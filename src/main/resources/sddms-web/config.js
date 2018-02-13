@@ -13,7 +13,7 @@ addListenerExecuteConfig = function() {
 
 var loadConfig = function() {
 	$.ajax({
-		url : "/sddms/config",
+		url : "/sddms/mapping",
 		type : 'GET',
 		async : true,
 		beforeSend : function(req) {
@@ -30,7 +30,7 @@ var loadConfig = function() {
 
 var saveConfig = function() {
 	$.ajax({
-		url : "/sddms/config",
+		url : "/sddms/mapping",
 		type : 'POST',
 		contentType : "text/plain",
 		data : $("#configTextArea").val(),

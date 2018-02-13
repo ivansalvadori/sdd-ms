@@ -18,9 +18,9 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import br.ufsc.inf.lapesd.sddms.DataManager;
 import br.ufsc.inf.lapesd.sddms.OntologyManager;
 
 @Path("ontology")
@@ -33,8 +33,8 @@ public class OntoloyEndpoint {
     @Autowired
     private OntologyManager ontologyManager;
 
-    @Autowired
-    private DataManager dataManager;
+    @Value("${config.managedUri}")
+    private String managedUri = "http://example.com";
 
     @GET
     @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
@@ -45,9 +45,8 @@ public class OntoloyEndpoint {
         ontologyModel.write(out, Lang.TURTLE.getName());
         String modelString = out.toString();
 
-        String path = uriInfo.getBaseUri() + "resource?uri=";
-        String resourcePrefix = this.dataManager.getResourcePrefix();
-        String modelStringReplaced = modelString.replace(resourcePrefix, path);
+        String path = uriInfo.getBaseUri() + "resource/";
+        String modelStringReplaced = modelString.replace(managedUri, path);
 
         ontologyModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         ontologyModel.read(new StringReader(modelStringReplaced), null, Lang.TURTLE.getName());
@@ -63,8 +62,8 @@ public class OntoloyEndpoint {
         model.write(out, Lang.TURTLE.getName());
         String modelString = out.toString();
 
-        String pathToReplace = uriInfo.getBaseUri() + "resource?uri=";
-        String modelStringReplaced = modelString.replace(pathToReplace, this.dataManager.getResourcePrefix());
+        String pathToReplace = uriInfo.getBaseUri() + "resource/";
+        String modelStringReplaced = modelString.replace(pathToReplace, this.managedUri);
 
         InfModel ontologyModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         ontologyModel.read(new StringReader(modelStringReplaced), null, Lang.TURTLE.getName());

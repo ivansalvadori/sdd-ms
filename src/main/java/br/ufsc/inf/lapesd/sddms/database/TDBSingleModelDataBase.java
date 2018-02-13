@@ -1,6 +1,5 @@
 package br.ufsc.inf.lapesd.sddms.database;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,54 +30,38 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.tdb.TDBFactory;
 import org.apache.jena.vocabulary.OWL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
-import com.google.gson.JsonObject;
+public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase {
 
-import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
+    private static final Logger logger = LoggerFactory.getLogger(TDBSingleModelDataBase.class);
 
-public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase, CsvReaderListener {
+    @Value("${config.tdbPath}")
+    private String tdbPath = "tdb";
 
-    private String tdbDirectory = "tdb";
-    private InfModel currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-    private int writerBatchController = 0;
-    protected int resourcesPerFile = 0;
+    @Value("${config.managedUri}")
+    private String managedUri = "http://example.com";
+
+    @Value("${config.importExternalWebResources}")
+    private boolean importExternalWebResources = false;
+
+    private int pageSize = 50;
 
     @PostConstruct
     public void init() {
-        System.out.println("TDB single graph database");
-        JsonObject mappingConfing = readConfigMapping();
-        this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
+        logger.info("Initializing TDB single graph database");
     }
 
     @Override
     public void store(Model model) {
-        if (writerBatchController == 1000) {
-            persit(currentModel);
-            currentModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
-            writerBatchController = 0;
-        }
-        currentModel.add(model);
-        writerBatchController++;
+        // todo
     }
 
     @Override
     public void resetDataset() {
-        removeTdbFolderIfExists();
-    }
-
-    private void persit(Model model) {
-        resetDataset();
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
-        dataset.begin(ReadWrite.WRITE);
-        Model tdbDefaultModel = dataset.getDefaultModel();
-
-        StmtIterator listStatements = model.listStatements();
-        while (listStatements.hasNext()) {
-            tdbDefaultModel.add(listStatements.next());
-        }
-
-        dataset.commit();
-        dataset.close();
+        // todo
     }
 
     @Override
@@ -106,7 +89,7 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
 
     @Override
     public Model load(String resourceUri) {
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
+        Dataset dataset = TDBFactory.createDataset(tdbPath);
         dataset.begin(ReadWrite.READ);
         Model ontologyModel = super.ontologyManager.getOntologyModel();
 
@@ -116,9 +99,7 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
             NodeIterator sameAsList = ontologyModel.listObjectsOfProperty(ontologyModel.getResource(resourceUri), OWL.sameAs);
             while (sameAsList.hasNext()) {
                 RDFNode next = sameAsList.next();
-                String prefix = readConfigMapping().get("prefix").getAsString();
-                boolean importExternalWebResources = readConfigMapping().get("importExternalWebResources").getAsBoolean();
-                if (!next.toString().contains(prefix) && importExternalWebResources) {
+                if (!next.toString().contains(this.managedUri) && importExternalWebResources) {
                     try {
                         RDFDataMgr.read(resourceModel, next.toString(), Lang.RDFXML);
                     } catch (Exception e) {
@@ -132,8 +113,6 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
             resourceModel.add(findAndPopulate(resourceUri, dataset.getDefaultModel()));
 
         }
-
-        // resourceModel.add(findAndPopulate(resourceUri, ontologyModel));
 
         OntModel finalResource = ModelFactory.createOntologyModel(OntModelSpec.OWL_DL_MEM);
         StmtIterator properties = resourceModel.getResource(resourceUri).listProperties();
@@ -170,40 +149,13 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         return resourceModel;
     }
 
-    private OntModel findAndPopulate(String resourceUri, Dataset dataset) {
-        OntModel resourceModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RULES_INF);
-        Model ontologyModel = super.ontologyManager.getOntologyModel();
-        resourceModel.add(ontologyModel);
-
-        Resource createResource = resourceModel.createResource(resourceUri);
-        StringBuilder queryStr = new StringBuilder();
-        String sparqlFragment = String.format("SELECT ?p ?o { <%s> ?p ?o} ", resourceUri);
-        queryStr.append(sparqlFragment);
-
-        Query query = QueryFactory.create(queryStr.toString());
-        QueryExecution qexec = QueryExecutionFactory.create(query, dataset);
-        ResultSet results = qexec.execSelect();
-
-        while (results.hasNext()) {
-            QuerySolution next = results.next();
-            Resource predicate = next.getResource("p");
-            RDFNode rdfNode = next.get("o");
-            createResource.addProperty(resourceModel.createProperty(predicate.getURI()), rdfNode);
-        }
-
-        return resourceModel;
-    }
-
     @Override
     public Model queryTDB(String rdfType, Map<String, String> propertiesAndvalues) {
-        Dataset dataset = TDBFactory.createDataset(tdbDirectory);
+        Dataset dataset = TDBFactory.createDataset(tdbPath);
         dataset.begin(ReadWrite.READ);
 
         OntModel ontologyModel = super.ontologyManager.getOntologyModel();
         ontologyModel.setStrictMode(false);
-
-        JsonObject mappingConfing = this.readConfigMapping();
-        int pageSize = mappingConfing.get("pageSize").getAsInt();
 
         int requestedOffset = 0;
         if (propertiesAndvalues.get("sddms:pageId") != null) {
@@ -300,39 +252,10 @@ public class TDBSingleModelDataBase extends AbstractDataBase implements DataBase
         return resourcesFetched;
     }
 
-    private void removeTdbFolderIfExists() {
-        File folder = new File("tdb");
-        String[] entries = folder.list();
-
-        if (entries == null) {
-            return;
-        }
-
-        for (String s : entries) {
-            File currentFile = new File(folder.getPath(), s);
-            currentFile.delete();
-        }
-        folder.delete();
-        File index = new File("index.db");
-        index.delete();
-    }
-
     @Override
     public void commit() {
-    }
+        // TODO Auto-generated method stub
 
-    @Override
-    public void readProcessFinished() {
-        this.persit(this.currentModel);
-    }
-
-    @Override
-    public void justRead(Model model) {
-        this.store(model);
-    }
-
-    public void setDirectory(String directory) {
-        this.tdbDirectory = directory;
     }
 
 }
