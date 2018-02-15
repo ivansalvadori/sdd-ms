@@ -3,6 +3,7 @@ package br.ufsc.inf.lapesd.sddms.endpoint;
 import java.io.StringReader;
 import java.io.StringWriter;
 
+import javax.annotation.PostConstruct;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -35,6 +36,13 @@ public class OntoloyEndpoint {
 
     @Value("${config.managedUri}")
     private String managedUri = "http://example.com";
+
+    @PostConstruct
+    public void normalizeManagedUri() {
+        if (!managedUri.endsWith("/")) {
+            managedUri = managedUri + "/";
+        }
+    }
 
     @GET
     @Produces({ "application/n-quads", "application/ld+json", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.PostConstruct;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -53,6 +54,13 @@ public class ResourcesEndpoint {
     @Value("${config.managedUri}")
     private String managedUri = "http://example.com";
 
+    @PostConstruct
+    public void normalizeManagedUri() {
+        if (!managedUri.endsWith("/")) {
+            managedUri = managedUri + "/";
+        }
+    }
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response listAllManagedClasses() {
@@ -64,8 +72,10 @@ public class ResourcesEndpoint {
         Resource hydraDoc = resourceModel.createResource("http://sddms.com.br/ontology/" + "ResourceList", apiDocType);
 
         String baseUri = uriInfo.getBaseUri().toString();
+        String resourcePath = uriInfo.getBaseUri() + "resource/";
 
         for (String uri : allManagedSemanticClasses) {
+            uri = uri.replace(managedUri, resourcePath);
             Resource managedClasse = resourceModel.createResource(uri, hydraClass);
             managedClasse.addProperty(resourceModel.createProperty("http://www.w3.org/2000/01/rdf-schema#seeAlso"), baseUri + "resources?uriClass=" + uri);
 
@@ -89,13 +99,17 @@ public class ResourcesEndpoint {
         Map<String, String> propertyValues = new HashMap<>();
         MultivaluedMap<String, String> queryParameters = uriInfo.getQueryParameters();
         Set<String> keySet = queryParameters.keySet();
+        String pathToReplace = uriInfo.getBaseUri() + "resource/";
+
         for (String prop : keySet) {
             String firstPropertyValue = queryParameters.getFirst(prop);
-            String pathToReplace = uriInfo.getBaseUri() + "resource/";
             String firstPropertyValueReplaced = firstPropertyValue.replace(pathToReplace, managedUri);
+            prop = prop.replace(pathToReplace, managedUri);
             propertyValues.put(prop, firstPropertyValueReplaced);
         }
+
         propertyValues.remove("uriClass");
+        uriClass = uriClass.replace(pathToReplace, managedUri);
         Model queryTDB = dataBase.queryTDB(uriClass, propertyValues);
         String requestedUri = uriInfo.getRequestUri().toString();
         Resource renamedResource = ResourceUtils.renameResource(queryTDB.getResource("http://sddms.com.br/ontology/ResourceList"), requestedUri);
@@ -103,7 +117,10 @@ public class ResourcesEndpoint {
         StringWriter out = new StringWriter();
         renamedResource.getModel().write(out, Lang.JSONLD.getName());
         String resourceString = out.toString();
-        String resourceStringReplaced = resourceString.replaceAll(managedUri, uriInfo.getBaseUri() + "resource/");
+
+        String resourceStringReplaced = resourceString;
+
+        resourceStringReplaced = resourceString.replaceAll(managedUri, pathToReplace);
 
         String requestedUriPagination = createLinkForPagination(pageId, queryParameters, keySet);
 

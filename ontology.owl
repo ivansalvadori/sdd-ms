@@ -12,3 +12,21 @@ api:TheftAutoReport rdfs:subClassOf api:CriminalReport .
 api:timeOfDay a owl:DatatypeProperty .
 api:periodOfDay a owl:DatatypeProperty .
 api:periodOfDay owl:equivalentProperty api:timeOfDay .
+
+
+
+
+api:BOnoturno
+  a owl:Class ;
+  owl:equivalentClass
+  [ a owl:Class ;
+    owl:intersectionOf 
+      ( api:TheftAutoReport 
+        [ a owl:Restriction ;
+	      owl:onProperty api:timeOfDay ;
+	      owl:hasValue "A NOITE"
+	    ]
+	   
+	  )	   
+  ] .
+
