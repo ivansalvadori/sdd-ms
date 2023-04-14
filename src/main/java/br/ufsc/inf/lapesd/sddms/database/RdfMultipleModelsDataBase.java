@@ -33,8 +33,7 @@ import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
-
-import com.google.gson.JsonObject;
+import org.springframework.beans.factory.annotation.Value;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReaderListener;
 
@@ -45,31 +44,46 @@ public class RdfMultipleModelsDataBase extends AbstractDataBase implements DataB
     private Map<String, Set<String>> mapResourcUriModels = new HashMap<>();
     private Set<String> modelIDs = new HashSet<>();
 
+    @Value("${config.ontologyFile}")
     private String ontologyFile;
+    
+    
     private boolean enableInference;
+    
+    @Value("${config.managedUri}")
     private String resourcePrefix = "";
-    private String rdfFolder = "";
+    
+    @Value("${config.ontologyFormat}")
     private String ontologyFormat = Lang.N3.getName();
+    
+    @Value("${config.rdfFormat}")
     private String rdfFormat = Lang.NTRIPLES.getName();
 
     private int writerBatchController = 0;
+    
+    @Value("${config.resourcesPerFile}")    
     protected int resourcesPerFile = 0;
+
     private boolean singleRdfOutputFile = true;
+    
+    
     private String currentFileId = UUID.randomUUID().toString();
 
     private long totalNumberOfTriples = 0;
+    
+    
+    @Value("${config.rdfFolder}")
+    private String rdfFolder = "tdb";
+
+    @Value("${config.managedUri}")
+    private String managedUri = "http://example.com";
+
+    @Value("${config.importExternalWebResources}")
+    private boolean importExternalWebResources = false;
 
     @PostConstruct
     public void init() {
-        JsonObject mappingConfing = readConfigMapping();
-        this.ontologyFile = mappingConfing.get("ontologyFile").getAsString();
-        this.resourcePrefix = mappingConfing.get("prefix").getAsString();
-        this.ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
-        this.enableInference = mappingConfing.get("enableInference").getAsBoolean();
-        this.rdfFolder = mappingConfing.get("rdfFolder").getAsString();
-        this.resourcesPerFile = mappingConfing.get("resourcesPerFile").getAsInt();
-        this.singleRdfOutputFile = mappingConfing.get("singleRdfOutputFile").getAsBoolean();
-
+        
         System.out.println("RDF multiple files database");
         indexResources();
     }

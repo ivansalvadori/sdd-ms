@@ -1,0 +1,37 @@
+{
+      "@context": {
+            "@type": "http://www.public-security-ontology/TheftAutoReport",
+            "@uriProperty": [
+                  
+                  "DELEGACIA_NOME",
+                  "DELEGACIA_CIRCUNSCRICAO"
+            ],
+            "NUMERO_BOLETIM": "http://www.public-security-ontology/reportNumber",
+            "DATAOCORRENCIA": "http://www.public-security-ontology/date",
+            "ANO_BO": "http://www.public-security-ontology/year",
+            "PERIDOOCORRENCIA": "http://www.public-security-ontology/timeOfDay",
+            "FLAGRANTE": "http://www.public-security-ontology/flagrant",
+            "NUMERO_BOLETIM_PRINCIPAL": "http://www.public-security-ontology/primaryReportNumber",
+            "SOLUCAO": "http://www.public-security-ontology/result",
+            "ESPECIE": "http://www.public-security-ontology/clauseName",
+            "RUBRICA": "http://www.public-security-ontology/clauseDescription",
+            "DELEGACIA_NOME": "http://www.public-security-ontology/policeStationName",
+            "DELEGACIA_CIRCUNSCRICAO": "http://www.public-security-ontology/jurisdiction",
+            "PLACA_VEICULO": "http://www.public-security-ontology/licensePlate",
+            "DESCR_COR_VEICULO": "http://www.public-security-ontology/color",
+            "DESCR_MARCA_VEICULO": "http://www.public-security-ontology/model",
+            "ANO_FABRICACAO": "http://www.public-security-ontology/vehiculeFabricationyear",
+            "ANO_MODELO": "http://www.public-security-ontology/referenceModelYear",
+            "DESCR_TIPO_VEICULO": "http://www.public-security-ontology/typeOfVehicule",
+            "CIDADE_VEICULO": "http://www.public-security-ontology/vehiculeRegisterCityName",
+            "UF_VEICULO": "http://www.public-security-ontology/vehiculeRegisterEstateName",
+            "CIDADE": "http://www.public-security-ontology/cityName",
+            "UF": "http://www.public-security-ontology/estateName",
+            "LOGRADOURO": "http://www.public-security-ontology/streetAddress",
+            "BAIRRO": "http://www.public-security-ontology/regionName",
+            "DESCRICAOLOCAL": "http://www.public-security-ontology/typeOfAddress",
+            "LATITUDE": "http://www.public-security-ontology/latitude",
+            "LONGITUDE": "http://www.public-security-ontology/longitude"
+		},
+	  "@resourceDomain": "http://www.example.com"      
+}

@@ -1,8 +1,10 @@
 server.port: 8089
 config:
-  persistenceType: "TdbSingleModel"
-  tdbPath: C:\Users\ivan_\Documents\diaas-exp\deployer\instances\a6e23fc7-fcfc-42d3-b0ea-2579edd4160a\tdb
-  ontologyFile: C:\Users\ivan_\Documents\diaas-exp\deployer\instances\a6e23fc7-fcfc-42d3-b0ea-2579edd4160a\ontology.owl
+  persistenceType: "RdfFiles"
+  rdfFolder: D:\Dev\sddms\rdf\
+  ontologyFile: D:\Dev\sddms\ontology.owl
   ontologyFormat: "N3"
-  managedUri: "http://www.ssp.sp.gov.br/transparenciassp/"
+  rdfFormat: "NTRIPLES"
+  managedUri: "http://www.example.com/"
   importExternalWebResources: false
+  resourcesPerFile: 1000
